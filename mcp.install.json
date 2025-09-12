@@ -1,0 +1,10 @@
+{
+  "amicompat": {
+    "command": "amicompat-mcp",
+    "args": [],
+    "env": {}
+  }
+}
+
+
+

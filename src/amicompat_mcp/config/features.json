@@ -1,0 +1,142 @@
+{
+  "css-subgrid": {
+    "pattern": "grid-template-(rows|columns)\\s*:\\s*subgrid",
+    "group": "css",
+    "id": "css-subgrid"
+  },
+  "css-container-queries": {
+    "pattern": "@container\\s+[\\w-]+|@container\\s*\\([^)]*\\)",
+    "group": "css",
+    "id": "css-container-queries"
+  },
+  "css-has-selector": {
+    "pattern": ":has\\s*\\([^)]+\\)",
+    "group": "css",
+    "id": "css-has-selector"
+  },
+  "css-color-mix": {
+    "pattern": "\\bcolor-mix\\s*\\([^)]+\\)",
+    "group": "css",
+    "id": "css-color-mix"
+  },
+  "css-oklch": {
+    "pattern": "\\boklch\\s*\\([^)]+\\)",
+    "group": "css",
+    "id": "css-oklch"
+  },
+  "css-lch": {
+    "pattern": "\\blch\\s*\\([^)]+\\)",
+    "group": "css",
+    "id": "css-lch"
+  },
+  "css-where": {
+    "pattern": ":where\\s*\\([^)]+\\)",
+    "group": "css",
+    "id": "css-where"
+  },
+  "css-is": {
+    "pattern": ":is\\s*\\([^)]+\\)",
+    "group": "css",
+    "id": "css-is"
+  },
+  "css-focus-visible": {
+    "pattern": ":focus-visible\\b",
+    "group": "css",
+    "id": "css-focus-visible"
+  },
+  "css-scope": {
+    "pattern": "@scope\\s*\\([^)]*\\)|@scope\\s+to\\s*\\(",
+    "group": "css",
+    "id": "css-scope"
+  },
+  "css-cascade-layers": {
+    "pattern": "@layer\\s+[\\w-]+|@layer\\s*\\{",
+    "group": "css",
+    "id": "css-cascade-layers"
+  },
+  "css-aspect-ratio": {
+    "pattern": "aspect-ratio\\s*:",
+    "group": "css",
+    "id": "css-aspect-ratio"
+  },
+  "css-logical-properties": {
+    "pattern": "(margin|padding|border)-(block|inline)-(start|end)",
+    "group": "css",
+    "id": "css-logical-properties"
+  },
+  "js-optional-chaining": {
+    "pattern": "\\?\\.(?!\\d)",
+    "group": "js",
+    "id": "js-optional-chaining"
+  },
+  "js-nullish-coalescing": {
+    "pattern": "\\?\\?(?!=)",
+    "group": "js",
+    "id": "js-nullish-coalescing"
+  },
+  "js-private-fields": {
+    "pattern": "(?<![\"|']|\/)#(?!\\d|[a-fA-F0-9]{3}|[a-fA-F0-9]{6})\\w+",
+    "group": "js",
+    "id": "js-private-fields"
+  },
+  "js-top-level-await": {
+    "pattern": "^[^/]*\\\\bawait\\\\s+[\\\\w\\\\(]",
+    "group": "js",
+    "id": "js-top-level-await"
+  },
+  "view-transitions": {
+    "pattern": "document\\.startViewTransition\\s*\\(",
+    "group": "js",
+    "id": "view-transitions"
+  },
+  "popover-api": {
+    "pattern": "\\.showPopover\\s*\\(|\\.hidePopover\\s*\\(|\\.togglePopover\\s*\\(",
+    "group": "js",
+    "id": "popover-api"
+  },
+  "array-at": {
+    "pattern": "\\.at\\s*\\([^)]*\\)",
+    "group": "js",
+    "id": "array-at"
+  },
+  "promise-withresolvers": {
+    "pattern": "Promise\\.withResolvers\\s*\\(",
+    "group": "js",
+    "id": "promise-withresolvers"
+  },
+  "structuredclone": {
+    "pattern": "structuredClone\\s*\\(",
+    "group": "js",
+    "id": "structuredclone"
+  },
+  "array-findlast": {
+    "pattern": "\\.findLast\\s*\\(|\\.findLastIndex\\s*\\(",
+    "group": "js",
+    "id": "array-findlast"
+  },
+  "html-dialog": {
+    "pattern": "<dialog[\\s>]",
+    "group": "html",
+    "id": "dialog-element"
+  },
+  "html-popover": {
+    "pattern": "\\bpopover\\s*=\\s*[\"']",
+    "group": "html",
+    "id": "popover-api"
+  },
+  "html-inert": {
+    "pattern": "\\binert(?:\\s|>|=)",
+    "group": "html",
+    "id": "html-inert"
+  },
+  "html-search": {
+    "pattern": "<search[\\s>]",
+    "group": "html",
+    "id": "html-search"
+  },
+  "html-selectlist": {
+    "pattern": "<selectlist[\\s>]",
+    "group": "html",
+    "id": "html-selectlist"
+  }
+}

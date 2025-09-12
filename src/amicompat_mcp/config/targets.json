@@ -1,0 +1,21 @@
+{
+  "baseline-2024": {
+    "chrome": 121,
+    "firefox": 122,
+    "safari": 17,
+    "edge": 121
+  },
+  "baseline-2023": {
+    "chrome": 109,
+    "firefox": 109,
+    "safari": 16,
+    "edge": 109
+  },
+  "widely": {
+    "chrome": 100,
+    "firefox": 100,
+    "safari": 15,
+    "edge": 100
+  }
+}
+

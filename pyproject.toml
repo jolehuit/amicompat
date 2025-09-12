@@ -1,0 +1,43 @@
+[project]
+name = "amicompat-mcp"
+version = "1.0.0"
+description = "MCP server for auditing web codebase Baseline compatibility"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "AmICompat Team" }
+]
+license = { file = "LICENSE" }
+dependencies = [
+    "mcp[cli]>=1.2.0",
+    "httpx>=0.27.0",
+]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development",
+  "Environment :: Console",
+]
+
+[project.scripts]
+amicompat-mcp = "amicompat_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amicompat_mcp"]
+
+[tool.hatch.build]
+include = [
+  "src/amicompat_mcp/config/features.json",
+  "src/amicompat_mcp/config/targets.json"
+]
+
+
+
