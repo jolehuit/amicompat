@@ -137,8 +137,8 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Start the server
-async function main(): Promise<void> {
+// Exported starter so the CLI can run the server
+export async function startServer(): Promise<void> {
   try {
     const server = new AmICompatMCPServer();
     await server.start();
@@ -149,9 +149,8 @@ async function main(): Promise<void> {
 }
 
 // Only run if this is the main module
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    console.error('❌ Unhandled error:', error);
-    process.exit(1);
-  });
-}
+// Always start when imported/executed (works with CLI importing this module)
+startServer().catch((error) => {
+  console.error('❌ Unhandled error:', error);
+  process.exit(1);
+});
