@@ -36,6 +36,9 @@ jobs:
     - name: Build project
       run: npm run build
 
+    - name: Run tests
+      run: npm test
+
     - name: Test CLI
       run: node dist/cli.js info
 
