@@ -1,5 +1,4 @@
 import { parse as babelParse } from '@babel/parser';
-// @ts-expect-error - babel traverse has complex ESM/CJS interop
 import traverse, { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import * as postcss from 'postcss';
@@ -39,7 +38,6 @@ export class ASTParser {
         ],
       });
 
-      // @ts-expect-error - babel traverse ESM/CJS interop issue
       (traverse.default || traverse)(ast, {
         // Optional chaining (?.)
         OptionalMemberExpression: (path: NodePath<t.OptionalMemberExpression>) => {
