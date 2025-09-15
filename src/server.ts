@@ -32,7 +32,7 @@ class AmICompatMCPServer {
 
     this.server = new McpServer({
       name: 'amicompat',
-      version: '1.0.0',
+      version: '1.1.0',
     });
 
     this.setupTools();

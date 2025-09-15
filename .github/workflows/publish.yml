@@ -2,8 +2,11 @@ name: Publish to NPM
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -42,7 +45,48 @@ jobs:
     - name: Test CLI
       run: node dist/cli.js info
 
+    - name: Auto-increment version
+      id: version
+      run: |
+        # Only publish on push to main, not on PRs
+        if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Check if version exists on NPM
+          if npm view amicompat@$CURRENT_VERSION version 2>/dev/null; then
+            echo "Version $CURRENT_VERSION exists, incrementing patch version..."
+            NEW_VERSION=$(npm version patch --no-git-tag-version)
+            echo "New version: $NEW_VERSION"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version $CURRENT_VERSION does not exist, using current version"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            echo "new_version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "Skipping publish for PR or non-main branch"
+          echo "should_publish=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Update version in server.ts
+      if: steps.version.outputs.should_publish == 'true'
+      run: |
+        NEW_VERSION=$(node -p "require('./package.json').version")
+        sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/" src/server.ts
+        echo "Updated server.ts with version $NEW_VERSION"
+
+    - name: Rebuild with new version
+      if: steps.version.outputs.should_publish == 'true'
+      run: npm run build
+
     - name: Publish to NPM
+      if: steps.version.outputs.should_publish == 'true'
       run: npm publish --provenance --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Skip publish
+      if: steps.version.outputs.should_publish == 'false'
+      run: echo "Skipping publish - either PR or version management in progress"
