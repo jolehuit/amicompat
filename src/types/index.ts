@@ -3,7 +3,7 @@ import { z } from 'zod';
 // MCP Tool Input Schemas (validated with Zod)
 export const AuditProjectInputSchema = z.object({
   project_path: z.string().describe('Path to the project directory'),
-  target: z.enum(['baseline-2024', 'baseline-2023', 'widely', 'limited']).default('baseline-2024').describe('Baseline compatibility target'),
+  target: z.enum(['baseline-2025', 'baseline-2024', 'baseline-2023', 'widely', 'limited']).default('baseline-2025').describe('Baseline compatibility target'),
   max_files: z.number().int().positive().default(10000).describe('Maximum number of files to scan'),
   export_path: z.string().optional().describe('Export results to JSON file'),
 });
@@ -27,7 +27,7 @@ export type GetFeatureStatusInput = z.infer<typeof GetFeatureStatusInputSchema>;
 export type ExportLastReportInput = z.infer<typeof ExportLastReportInputSchema>;
 
 // Baseline compatibility targets
-export type BaselineTarget = 'baseline-2024' | 'baseline-2023' | 'widely' | 'limited';
+export type BaselineTarget = 'baseline-2025' | 'baseline-2024' | 'baseline-2023' | 'widely' | 'limited';
 
 // Feature detection result
 export interface FeatureDetection {

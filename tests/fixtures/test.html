@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test HTML with modern features</title>
+</head>
+<body>
+  <dialog id="myDialog">
+    <p>This is a modern dialog element</p>
+    <button onclick="this.closest('dialog').close()">Close</button>
+  </dialog>
+
+  <img src="lazy.jpg" loading="lazy" alt="Lazy loaded image">
+  <img src="eager.jpg" loading="eager" alt="Eager loaded image">
+
+  <form>
+    <input type="date" name="date" required>
+    <input type="color" name="color" value="#ff0000">
+    <input type="range" name="volume" min="0" max="100">
+    <input type="datetime-local" name="datetime">
+    <input type="month" name="month">
+    <input type="week" name="week">
+    <input type="time" name="time">
+  </form>
+
+  <my-custom-element data-value="test">
+    <p>Custom web component content</p>
+  </my-custom-element>
+
+  <user-profile username="john">
+    <span slot="avatar">👤</span>
+  </user-profile>
+
+  <details>
+    <summary>Click to expand</summary>
+    <p>Hidden content that can be toggled</p>
+  </details>
+</body>
+</html>

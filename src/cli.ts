@@ -26,13 +26,13 @@ async function main(): Promise<void> {
   const program = new Command();
 
   program
-    .name('amicompat-mcp')
+    .name('amicompat')
     .description('AmICompat MCP Server - Web Baseline Compatibility Auditor')
     .version(version);
 
   program
-    .command('server', { isDefault: true })
-    .description('Start the MCP server (default)')
+    .command('server')
+    .description('Start the MCP server')
     .action(async () => {
       console.error(chalk.blue.bold('🚀 Starting AmICompat MCP Server...'));
       console.error(chalk.gray('Use Ctrl+C to stop the server\n'));
@@ -41,6 +41,11 @@ async function main(): Promise<void> {
       await import('./server.js');
       // The server will be started automatically via the main() call in server.ts
     });
+
+  // Add help command if no arguments provided
+  if (process.argv.length === 2) {
+    process.argv.push('server'); // Default to server command
+  }
 
   program
     .command('info')

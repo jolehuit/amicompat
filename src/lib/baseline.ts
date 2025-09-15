@@ -57,10 +57,26 @@ export class BaselineCompute {
   private extractSupportData(result: any): Record<string, string | boolean> {
     const support: Record<string, string | boolean> = {};
 
-    if (result.support && result.support instanceof Map) {
-      for (const [browser, version] of result.support.entries()) {
-        support[browser] = version;
+    try {
+      if (result.support) {
+        if (result.support instanceof Map) {
+          for (const [browser, version] of result.support.entries()) {
+            // Only include primitive values to avoid circular references
+            if (typeof version === 'string' || typeof version === 'boolean' || typeof version === 'number') {
+              support[browser] = String(version);
+            }
+          }
+        } else if (typeof result.support === 'object' && result.support !== null) {
+          // Handle object-style support data
+          for (const [browser, version] of Object.entries(result.support)) {
+            if (typeof version === 'string' || typeof version === 'boolean' || typeof version === 'number') {
+              support[browser] = String(version);
+            }
+          }
+        }
       }
+    } catch (error) {
+      console.warn('Failed to extract support data:', error);
     }
 
     return support;

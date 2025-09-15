@@ -103,13 +103,19 @@ export class MCPTools {
 
       this.lastReport = report;
 
+      // Format response
+      const summary = this.formatAuditSummary(report);
+
       // Export if requested
       if (input.export_path) {
         await this.exportReport(report, input.export_path);
+        return {
+          content: [{
+            type: 'text',
+            text: summary + `\n✅ Report exported to ${input.export_path}`
+          }]
+        };
       }
-
-      // Format response
-      const summary = this.formatAuditSummary(report);
 
       return {
         content: [{
@@ -211,7 +217,7 @@ export class MCPTools {
         throw new McpError(ErrorCode.InvalidRequest, 'No audit report available to export');
       }
 
-      await writeFile(input.path, JSON.stringify(this.lastReport, null, 2), 'utf-8');
+      await writeFile(input.path, this.safeStringify(this.lastReport), 'utf-8');
 
       return {
         content: [{
@@ -229,6 +235,22 @@ export class MCPTools {
   }
 
   // Helper methods
+
+  /**
+   * Safe JSON stringify that handles circular references
+   */
+  private safeStringify(obj: any): string {
+    const seen = new WeakSet();
+    return JSON.stringify(obj, (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) {
+          return '[Circular Reference]';
+        }
+        seen.add(value);
+      }
+      return value;
+    }, 2);
+  }
 
   private async generateReport(
     projectPath: string,

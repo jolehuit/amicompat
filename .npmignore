@@ -1,0 +1,30 @@
+# Source files (keep only built dist)
+src/
+tests/
+*.test.ts
+*.test.js
+
+# Development files
+.eslintrc*
+tsconfig.json
+vitest.config.ts
+bunfig.toml
+
+# Git and IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Logs and caches
+*.log
+node_modules/
+.npm/
+
+# Test and coverage
+coverage/
+.nyc_output/
+
+# Development files
+*.md.bak
+.DS_Store

@@ -1,0 +1,37 @@
+/* Test CSS with modern features */
+.container {
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+@container (min-width: 400px) {
+  .card {
+    display: flex;
+  }
+}
+
+.button:has(.icon) {
+  padding-left: 2rem;
+}
+
+@layer base {
+  body {
+    margin: 0;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2;
+  }
+}
+
+.element {
+  color: color-mix(in srgb, red 50%, blue);
+}
+
+@property --my-color {
+  syntax: '<color>';
+  initial-value: blue;
+  inherits: false;
+}

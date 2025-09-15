@@ -132,15 +132,15 @@ export class ASTParser {
       const root = postcss.parse(context.content, { from: context.file_path });
 
       root.walkRules((rule) => {
-        // CSS Container Queries
+        // CSS Container Queries - detect rules inside @container
         if (rule.parent && rule.parent.type === 'atrule' && rule.parent.name === 'container') {
-          const loc = rule.source?.start;
+          const loc = rule.parent.source?.start || rule.source?.start;
           if (loc) {
             features.push({
               file: context.file_path,
               line: loc.line,
               column: loc.column,
-              context: rule.toString().split('\n')[0] || '',
+              context: rule.parent.toString().split('\n')[0] || '',
             });
           }
         }
@@ -170,6 +170,19 @@ export class ASTParser {
       });
 
       root.walkAtRules((atRule) => {
+        // CSS Container Queries
+        if (atRule.name === 'container') {
+          const loc = atRule.source?.start;
+          if (loc) {
+            features.push({
+              file: context.file_path,
+              line: loc.line,
+              column: loc.column,
+              context: atRule.toString().split('\n')[0] || '',
+            });
+          }
+        }
+
         // CSS Grid Subgrid
         if (atRule.name === 'supports' && atRule.params.includes('subgrid')) {
           const loc = atRule.source?.start;

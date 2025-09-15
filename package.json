@@ -1,22 +1,37 @@
 {
-  "name": "amicompat-mcp",
-  "version": "2.0.0",
+  "name": "amicompat",
+  "version": "1.0.0",
   "description": "MCP server for auditing web codebase Baseline compatibility - TypeScript native",
   "type": "module",
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
   "bin": {
-    "amicompat-mcp": "./dist/cli.js"
+    "amicompat": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/server.ts",
     "start": "node dist/server.js",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:integration": "npm run build && npm run test:cli && npm run test:parsers",
+    "test:cli": "node dist/cli.js info",
+    "test:parsers": "npm run test:parser:js && npm run test:parser:css && npm run test:parser:html",
+    "test:parser:js": "echo 'const x = a?.b ?? c;' > test.js && node dist/cli.js test-parse test.js && rm test.js",
+    "test:parser:css": "echo '@container { .test { display: flex; } }' > test.css && node dist/cli.js test-parse test.css && rm test.css",
+    "test:parser:html": "echo '<dialog>Test</dialog><input type=\"date\">' > test.html && node dist/cli.js test-parse test.html && rm test.html"
   },
-  "keywords": ["mcp", "baseline", "compatibility", "web", "audit", "typescript"],
+  "keywords": [
+    "mcp",
+    "baseline",
+    "compatibility",
+    "web",
+    "audit",
+    "typescript"
+  ],
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -40,7 +55,8 @@
     "eslint": "^9.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0"
   },
   "engines": {
     "node": ">=18"
