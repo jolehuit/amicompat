@@ -1,6 +1,6 @@
 import js from '@eslint/js';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 
 export default [
   js.configs.recommended,
@@ -9,36 +9,20 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        ecmaVersion: 2022,
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
         sourceType: 'module',
-        project: './tsconfig.json',
-      },
-      globals: {
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        global: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        exports: 'readonly',
+        ecmaVersion: 'latest',
       },
     },
-    plugins: {
-      '@typescript-eslint': tsPlugin,
-    },
+    plugins: { '@typescript-eslint': tsPlugin },
     rules: {
-      ...tsPlugin.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/ban-ts-comment': 'warn', // Allow @ts-ignore for complex type issues
-      'prefer-const': 'error',
-      'no-console': 'off', // CLI needs console
+      // Handled by TypeScript; avoid false positives on type-only names like NodeJS
+      'no-undef': 'off',
+      // Prefer TS-aware unused vars rule
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
-  },
-  {
-    ignores: ['dist/', 'node_modules/', '*.js', '*.mjs'],
   },
 ];
+
