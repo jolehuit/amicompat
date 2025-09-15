@@ -61,19 +61,46 @@ export class BaselineCompute {
     const support: Record<string, string | boolean> = {};
 
     try {
-      if (result.support) {
-        if (result.support instanceof Map) {
-          for (const [browser, version] of result.support.entries()) {
-            // Only include primitive values to avoid circular references
-            if (typeof version === 'string' || typeof version === 'boolean' || typeof version === 'number') {
-              support[browser] = String(version);
+      const raw = result?.support;
+
+      // Preferred: handle Map returned by compute-baseline directly
+      // Map keys are Browser objects (with `id`), values are InitialSupport objects (with `text`)
+      if (raw instanceof Map) {
+        for (const [browser, initial] of raw.entries()) {
+          const browserId = typeof browser === 'string'
+            ? browser
+            : (browser && typeof browser === 'object' && 'id' in browser)
+              ? String((browser as any).id)
+              : String(browser);
+
+          let value: string | boolean | undefined;
+          if (typeof initial === 'string' || typeof initial === 'boolean' || typeof initial === 'number') {
+            value = String(initial);
+          } else if (initial && typeof initial === 'object') {
+            // compute-baseline exposes a `.text` representation on InitialSupport
+            if ('text' in initial && typeof (initial as any).text === 'string') {
+              value = (initial as any).text as string;
             }
           }
-        } else if (typeof result.support === 'object' && result.support !== null) {
-          // Handle object-style support data
-          for (const [browser, version] of Object.entries(result.support)) {
-            if (typeof version === 'string' || typeof version === 'boolean' || typeof version === 'number') {
-              support[browser] = String(version);
+
+          if (value !== undefined && value !== '') {
+            support[browserId] = value;
+          }
+        }
+        return support;
+      }
+
+      // Fallback: handle plain-object output (e.g., from JSON.parse(result.toJSON()))
+      if (raw && typeof raw === 'object') {
+        for (const [browser, version] of Object.entries(raw)) {
+          if (
+            typeof version === 'string' ||
+            typeof version === 'boolean' ||
+            typeof version === 'number'
+          ) {
+            const value = String(version);
+            if (value !== '') {
+              support[browser] = value;
             }
           }
         }
