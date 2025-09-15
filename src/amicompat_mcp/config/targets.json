@@ -11,11 +11,22 @@
     "safari": 16,
     "edge": 109
   },
+  "baseline-2022": {
+    "chrome": 97,
+    "firefox": 97,
+    "safari": 15.4,
+    "edge": 97
+  },
   "widely": {
     "chrome": 100,
     "firefox": 100,
     "safari": 15,
     "edge": 100
+  },
+  "conservative": {
+    "chrome": 90,
+    "firefox": 90,
+    "safari": 14,
+    "edge": 90
   }
 }
-

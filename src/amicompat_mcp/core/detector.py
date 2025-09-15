@@ -3,10 +3,11 @@ import re
 import json
 from pathlib import Path
 from typing import Dict
+import importlib.resources
 
 class Detector:
     """Detect web features in code files using regex patterns"""
-    
+
     def __init__(self):
         """Initialize detector with patterns"""
         self.patterns = self._load_patterns()
@@ -24,26 +25,18 @@ class Detector:
             except re.error:
                 # Skip invalid regex; will warn during detection
                 pass
-    
+
     def _load_patterns(self) -> Dict[str, Dict[str, str]]:
-        """Load feature patterns from config file"""
-        # Try multiple paths for robustness
-        possible_paths = [
-            Path(__file__).parent.parent / "config" / "features.json",
-            Path.cwd() / "src" / "amicompat_mcp" / "config" / "features.json",
-        ]
-        
-        for config_path in possible_paths:
-            if config_path.exists():
-                try:
-                    with open(config_path, 'r', encoding='utf-8') as f:
-                        return json.load(f)
-                except Exception as e:
-                    print(f"Warning: Error loading {config_path}: {e}")
-        
-        # Fallback to default patterns
-        print("Warning: Using default patterns (features.json not found)")
-        return self._get_default_patterns()
+        """Load feature patterns from config file using importlib.resources"""
+        try:
+            # Try to load from embedded config first
+            files = importlib.resources.files("amicompat_mcp.config")
+            with files.joinpath("features.json").open('r', encoding='utf-8') as f:
+                return json.load(f)
+        except (ImportError, FileNotFoundError, json.JSONDecodeError):
+            # Fallback to default patterns if embedded config fails
+            print("Warning: Using default patterns (embedded features.json not found)")
+            return self._get_default_patterns()
     
     def _get_default_patterns(self) -> Dict[str, Dict[str, str]]:
         """Fallback patterns if config not found"""

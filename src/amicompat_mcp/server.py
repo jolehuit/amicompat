@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """MCP server entry point for AmICompat"""
+import logging
 from mcp.server.fastmcp import FastMCP
 from amicompat_mcp.mcp.handlers import setup_handlers
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 # Initialize FastMCP server with metadata
 mcp = FastMCP(

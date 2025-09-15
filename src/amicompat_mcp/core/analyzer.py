@@ -3,14 +3,15 @@ from typing import Dict, Any, List, Tuple, Optional
 from pathlib import Path
 import json
 import os
+import importlib.resources
 
 class Analyzer:
     """Analyze features and compute compatibility metrics"""
-    
+
     def __init__(self, target: Optional[str] = None):
         """
         Initialize analyzer with target baseline.
-        
+
         Args:
             target: Target baseline year/level
         """
@@ -21,27 +22,26 @@ class Analyzer:
         self.browsers = ["chrome", "firefox", "safari", "edge"]
         self._targets_map = self._load_targets_map()
         self.target_versions = self._get_target_versions(target)
-    
+
     def _load_targets_map(self) -> Dict[str, Dict[str, int]]:
-        """Load baseline targets map from packaged JSON or fallback."""
+        """Load baseline targets map from packaged JSON using importlib.resources."""
         default = {
             "baseline-2024": {"chrome": 121, "firefox": 122, "safari": 17, "edge": 121},
             "baseline-2023": {"chrome": 109, "firefox": 109, "safari": 16, "edge": 109},
+            "baseline-2022": {"chrome": 97, "firefox": 97, "safari": 15.4, "edge": 97},
             "widely": {"chrome": 100, "firefox": 100, "safari": 15, "edge": 100},
+            "conservative": {"chrome": 90, "firefox": 90, "safari": 14, "edge": 90},
         }
-        candidates = [
-            Path(__file__).parent.parent / "config" / "targets.json",
-            Path.cwd() / "src" / "amicompat_mcp" / "config" / "targets.json",
-        ]
-        for p in candidates:
-            try:
-                if p.exists():
-                    data = json.loads(p.read_text(encoding="utf-8"))
-                    # basic structure check
-                    if isinstance(data, dict):
-                        return data
-            except Exception:
-                pass
+        try:
+            # Try to load from embedded config first
+            files = importlib.resources.files("amicompat_mcp.config")
+            with files.joinpath("targets.json").open('r', encoding='utf-8') as f:
+                data = json.load(f)
+                # basic structure check
+                if isinstance(data, dict):
+                    return data
+        except (ImportError, FileNotFoundError, json.JSONDecodeError):
+            pass
         return default
 
     def _get_target_versions(self, target: str) -> Dict[str, int]:
