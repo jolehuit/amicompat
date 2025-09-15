@@ -1,5 +1,5 @@
 import { parse as babelParse } from '@babel/parser';
-// @ts-ignore - babel traverse has complex ESM/CJS interop
+// @ts-expect-error - babel traverse has complex ESM/CJS interop
 import traverse, { NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import * as postcss from 'postcss';
@@ -39,7 +39,7 @@ export class ASTParser {
         ],
       });
 
-      // @ts-ignore - babel traverse ESM/CJS interop issue
+      // @ts-expect-error - babel traverse ESM/CJS interop issue
       (traverse.default || traverse)(ast, {
         // Optional chaining (?.)
         OptionalMemberExpression: (path: NodePath<t.OptionalMemberExpression>) => {
@@ -147,7 +147,7 @@ export class ASTParser {
 
         // :has() selector
         try {
-          // @ts-ignore - postcss-selector-parser type issues
+          // @ts-expect-error - postcss-selector-parser type issues
           const processor = selectorParser((selectors: any) => {
             selectors.walkPseudos((pseudo: any) => {
               if (pseudo.value === ':has') {
@@ -164,7 +164,7 @@ export class ASTParser {
             });
           });
           processor.processSync(rule.selector);
-        } catch (error) {
+        } catch {
           // Skip invalid selectors
         }
       });

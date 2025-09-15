@@ -1,6 +1,6 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { writeFile } from 'fs/promises';
-import { join } from 'path';
+// import { join } from 'path'; // unused for now
 import chalk from 'chalk';
 import {
   AuditProjectInput,
@@ -386,15 +386,15 @@ export class MCPTools {
     return chalk.red('Limited Support');
   }
 
-  private mapFeaturesToCompatKeys(locations: any[]): string[] {
+  private mapFeaturesToCompatKeys(_locations: any[]): string[] {
     // Simplified mapping - in production this would be more comprehensive
     return ['css.properties.container', 'css.selectors.has'];
-  }
+    }
 
-  private extractFeatureName(location: any): string {
+    private extractFeatureName(_location: any): string {
     // Extract feature name from location context
     return 'detected-feature';
-  }
+    }
 
   private featureIdToCompatKeys(featureId: string): string[] {
     // Map feature IDs to BCD compat keys
