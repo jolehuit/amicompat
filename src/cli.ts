@@ -14,9 +14,8 @@ async function getPackageVersion(): Promise<string> {
   try {
     const packageJsonPath = join(__dirname, '..', 'package.json');
     const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'));
-    return packageJson.version || '1.0.0';
+    return packageJson.version;
   } catch {
-    return '1.0.0';
   }
 }
 
