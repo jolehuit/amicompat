@@ -2,20 +2,21 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { readFile } from 'fs/promises';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
 // Get package.json for version info
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 async function getPackageVersion(): Promise<string> {
   try {
-    const packageJsonPath = join(__dirname, '..', 'package.json');
-    const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'));
-    return packageJson.version;
-  } catch {
+    // Use Node's resolver to load JSON reliably in ESM
+    const require = createRequire(import.meta.url);
+    const pkg = require('../package.json');
+    if (pkg && typeof pkg.version === 'string' && pkg.version.length > 0) {
+      return pkg.version as string;
+    }
+    throw new Error('package.json is missing a valid version');
+  } catch (err) {
+    throw new Error(`Unable to read package version: ${(err as Error).message}`);
   }
 }
 
