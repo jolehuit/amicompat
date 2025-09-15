@@ -7,7 +7,7 @@ CURRENT_VERSION=$(node -p "require('./package.json').version")
 echo "Current version: $CURRENT_VERSION"
 
 # Check if version exists on NPM
-if npm view amicompat@$CURRENT_VERSION version 2>/dev/null; then
+if npm view amicompat-mcp@$CURRENT_VERSION version 2>/dev/null; then
   echo "✅ Version $CURRENT_VERSION exists on NPM"
   echo "Would increment to patch version..."
 
@@ -21,4 +21,4 @@ fi
 
 echo ""
 echo "🔍 Current NPM versions:"
-npm view amicompat versions --json | tail -10
+npm view amicompat-mcp versions --json | tail -10

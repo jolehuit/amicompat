@@ -1,8 +1,8 @@
 # AmICompat MCP - Be compatible regardless of the browser
 
-[![NPM Version](https://img.shields.io/npm/v/amicompat?color=red)](https://www.npmjs.com/package/amicompat) [![MIT licensed](https://img.shields.io/npm/l/amicompat)](./LICENSE) [![GitHub stars](https://img.shields.io/github/stars/jolehuit/amicompat?style=social)](https://github.com/jolehuit/amicompat)
+[![NPM Version](https://img.shields.io/npm/v/amicompat-mcp?color=red)](https://www.npmjs.com/package/amicompat-mcp) [![MIT licensed](https://img.shields.io/npm/l/amicompat-mcp)](./LICENSE) [![GitHub stars](https://img.shields.io/github/stars/jolehuit/amicompat?style=social)](https://github.com/jolehuit/amicompat)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=amicompat&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImFtaWNvbXBhdCJdfQ%3D%3D) [<img alt="Install in VS Code (npx)" src="https://img.shields.io/badge/Install%20in%20VS%20Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white">](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22amicompat%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22amicompat%22%5D%7D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=amicompat-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImFtaWNvbXBhdC1tY3AiXX0=) [<img alt="Install in VS Code (npx)" src="https://img.shields.io/badge/Install%20in%20VS%20Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white">](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22amicompat-mcp%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22amicompat-mcp%22%5D%7D)
 
 ## ❌ Without AmICompat
 
@@ -54,10 +54,10 @@ AmICompat works out of the box with `npx` - no installation needed! Just configu
 For faster startup times, you can optionally install AmICompat globally:
 
 ```bash
-npm install -g amicompat
+npm install -g amicompat-mcp
 ```
 
-Then use `"command": "amicompat"` in your configurations instead of the npx commands.
+Then use `"command": "amicompat-mcp"` in your configurations instead of the npx commands.
 
 ### MCP Client Configuration
 
@@ -66,20 +66,20 @@ Then use `"command": "amicompat"` in your configurations instead of the npx comm
 
 Go to: `Settings` -> `Cursor Settings` -> `MCP` -> `Add new global MCP server`
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=amicompat&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImFtaWNvbXBhdC1tY3AiXX0%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=amicompat-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImFtaWNvbXBhdC1tY3AiXX0=)
 
 ```json
 {
   "mcpServers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
 ```
 
-> If you installed globally: use `"command": "amicompat"` and `"args": []`
+> If you installed globally: use `"command": "amicompat-mcp"` and `"args": []`
 
 </details>
 
@@ -89,7 +89,7 @@ Go to: `Settings` -> `Cursor Settings` -> `MCP` -> `Add new global MCP server`
 Run this command. See [Claude Code MCP docs](https://docs.anthropic.com/en/docs/claude-code/mcp) for more info.
 
 ```sh
-claude mcp add amicompat -- npx -y amicompat
+claude mcp add amicompat-mcp -- npx -y amicompat-mcp
 ```
 
 </details>
@@ -102,9 +102,9 @@ Add this to your Windsurf MCP config file. See [Windsurf MCP docs](https://docs.
 ```json
 {
   "mcpServers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
@@ -115,17 +115,17 @@ Add this to your Windsurf MCP config file. See [Windsurf MCP docs](https://docs.
 <details>
 <summary><b>Install in VS Code</b></summary>
 
-[<img alt="Install in VS Code (npx)" src="https://img.shields.io/badge/VS_Code-VS_Code?style=flat-square&label=Install%20AmICompat%20MCP&color=0098FF">](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22amicompat%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22amicompat%22%5D%7D)
+[<img alt="Install in VS Code (npx)" src="https://img.shields.io/badge/VS_Code-VS_Code?style=flat-square&label=Install%20AmICompat%20MCP&color=0098FF">](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22amicompat-mcp%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22amicompat-mcp%22%5D%7D)
 
 Add this to your VS Code MCP config file. See [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) for more info.
 
 ```json
 "mcp": {
   "servers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
@@ -140,14 +140,14 @@ Add this to your VS Code MCP config file. See [VS Code MCP docs](https://code.vi
 2. Click the hamburger menu icon (☰) to enter the **MCP Servers** section.
 3. Choose **Local Servers** tab.
 4. Click the **Edit Configuration** button.
-5. Add amicompat to `mcpServers`:
+5. Add amicompat-mcp to `mcpServers`:
 
 ```json
 {
   "mcpServers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
@@ -166,7 +166,7 @@ Add this to your Zed `settings.json`. See [Zed Context Server docs](https://zed.
     "AmICompat": {
       "command": {
         "path": "npx",
-        "args": ["-y", "amicompat"]
+        "args": ["-y", "amicompat-mcp"]
       }
     }
   }
@@ -183,9 +183,9 @@ Add this to your Roo Code MCP configuration file. See [Roo Code MCP docs](https:
 ```json
 {
   "mcpServers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
@@ -203,9 +203,9 @@ Add the following to the `mcpServers` object in your `~/.gemini/settings.json` f
 ```json
 {
   "mcpServers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
@@ -221,9 +221,9 @@ Open Claude Desktop developer settings and edit your `claude_desktop_config.json
 ```json
 {
   "mcpServers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
@@ -237,8 +237,8 @@ Open Claude Desktop developer settings and edit your `claude_desktop_config.json
 Add the following configuration to your OpenAI Codex MCP server settings:
 
 ```toml
-[mcp_servers.amicompat]
-args = ["-y", "amicompat"]
+[mcp_servers.amicompat-mcp]
+args = ["-y", "amicompat-mcp"]
 command = "npx"
 ```
 
@@ -256,9 +256,9 @@ See [JetBrains AI Assistant Documentation](https://www.jetbrains.com/help/ai-ass
 ```json
 {
   "mcpServers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
@@ -274,9 +274,9 @@ Add the following configuration to the `mcp` section of your Copilot Coding Agen
 ```json
 {
   "mcpServers": {
-    "amicompat": {
+    "amicompat-mcp": {
       "command": "npx",
-      "args": ["-y", "amicompat"],
+      "args": ["-y", "amicompat-mcp"],
       "tools": ["audit_project", "audit_file", "get_feature_status", "export_last_report"]
     }
   }
@@ -296,7 +296,7 @@ Add the following configuration to the `mcp` section of your Copilot Coding Agen
   "mcpServers": {
     "AmICompat": {
       "command": "npx",
-      "args": ["-y", "amicompat"]
+      "args": ["-y", "amicompat-mcp"]
     }
   }
 }
@@ -316,7 +316,7 @@ Add the following configuration to the `mcp` section of your Copilot Coding Agen
 
 ```json
 {
-  "args": ["-y", "amicompat"],
+  "args": ["-y", "amicompat-mcp"],
   "command": "npx",
   "env": {}
 }
@@ -448,13 +448,13 @@ AmICompat also provides a command-line interface:
 
 ```bash
 # Show server information
-npx amicompat info
+npx amicompat-mcp info
 
 # Test parser on a file
-npx amicompat test-parse ./src/app.js
+npx amicompat-mcp test-parse ./src/app.js
 
 # Start MCP server (default)
-npx amicompat
+npx amicompat-mcp
 ```
 
 ## 🧪 Testing

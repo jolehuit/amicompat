@@ -54,7 +54,7 @@ jobs:
           echo "Current version: $CURRENT_VERSION"
 
           # Check if version exists on NPM
-          if npm view amicompat@$CURRENT_VERSION version 2>/dev/null; then
+          if npm view amicompat-mcp@$CURRENT_VERSION version 2>/dev/null; then
             echo "Version $CURRENT_VERSION exists, incrementing patch version..."
             NEW_VERSION=$(npm version patch --no-git-tag-version)
             echo "New version: $NEW_VERSION"

@@ -1,0 +1,1 @@
+const data = user?.profile?.name ?? "Anonymous";

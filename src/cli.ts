@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   const program = new Command();
 
   program
-    .name('amicompat')
+    .name('amicompat-mcp')
     .description('AmICompat MCP Server - Web Baseline Compatibility Auditor')
     .version(version);
 

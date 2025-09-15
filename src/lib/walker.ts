@@ -154,9 +154,23 @@ export class FileWalker {
    * Read file content with encoding detection
    */
   async readFileContent(filePath: string): Promise<string> {
+    // Avoid attempting to read when we already know it's missing
+    if (!(await this.pathExists(filePath))) {
+      const notFound = new Error(
+        `ENOENT: no such file or directory, open '${filePath}'`
+      ) as NodeJS.ErrnoException;
+      notFound.code = 'ENOENT';
+      notFound.path = filePath as unknown as string;
+      throw notFound;
+    }
     try {
       return await readFile(filePath, 'utf-8');
     } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      // For expected missing files, surface the rejection without noisy logs
+      if (err && err.code === 'ENOENT') {
+        throw err;
+      }
       console.warn(`Error reading file ${filePath}:`, error);
       throw error;
     }
@@ -173,6 +187,11 @@ export class FileWalker {
         modified: stats.mtime,
       };
     } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      // Missing files are a normal case for callers; return null quietly
+      if (err && err.code === 'ENOENT') {
+        return null;
+      }
       console.warn(`Error getting stats for ${filePath}:`, error);
       return null;
     }
