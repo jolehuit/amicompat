@@ -47,7 +47,7 @@ describe('CLI Integration Tests', () => {
       const { stdout, stderr } = await execAsync(`node ${cliPath} info`);
 
       expect(stdout).toContain('AmICompat MCP Server Information');
-      expect(stdout).toContain('Version: 2.0.0');
+      expect(stdout).toContain('Version: 1.0.0');
       expect(stdout).toContain('Architecture: TypeScript Native');
       expect(stdout).toContain('Parsing: AST-based');
       expect(stdout).toContain('Baseline Data: Local via web-features');

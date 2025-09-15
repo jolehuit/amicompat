@@ -31,8 +31,8 @@ class AmICompatMCPServer {
     this.tools = new MCPTools();
 
     this.server = new McpServer({
-      name: 'amicompat-mcp',
-      version: '2.0.0',
+      name: 'amicompat',
+      version: '1.0.0',
     });
 
     this.setupTools();
