@@ -80,6 +80,35 @@ async function main(): Promise<void> {
       console.log(chalk.gray('  AMICOMPAT_MAX_FILES=10000'));
       console.log(chalk.gray('  AMICOMPAT_MAX_CONCURRENCY=5'));
     });
+    
+  program
+  .command('audit')
+  .description('Audit project for web baseline compatibility')
+  .argument('<project>', 'Project directory path')
+  .option('--target <target>', 'Baseline target', 'baseline-2025')
+  .option('--export <path>', 'Export report to JSON file')
+  .action(async (projectPath: string, options) => {
+    try {
+      console.log(chalk.blue.bold(`🔍 Auditing project: ${projectPath}\n`));
+
+      const { MCPTools } = await import('./tools/index.js');
+      const tools = new MCPTools();
+
+      const result = await tools.auditProject({
+        project_path: projectPath,
+        target: options.target,
+        max_files: 10000,
+        export_path: options.export
+      });
+
+      console.log(result.content[0]?.text || 'No content available');
+
+    } catch (error) {
+      console.error(chalk.red('❌ Audit failed:'), error);
+      process.exit(1);
+    }
+  });
+
 
   program
     .command('test-parse')
@@ -128,6 +157,7 @@ async function main(): Promise<void> {
 
   await program.parseAsync();
 }
+
 
 /**
  * Detect file type from extension

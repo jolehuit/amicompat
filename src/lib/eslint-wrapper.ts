@@ -212,7 +212,7 @@ export class ESLintFeatureDetector {
       }
 
       // Private class fields
-      if (line.includes('#') && (line.includes('class') || line.includes('this.'))) {
+if (/\#[a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line.includes('this.#'))) {
         features.push(this.createFeature(
           'Private Class Fields',
           'js-private-class-fields',
@@ -229,13 +229,14 @@ export class ESLintFeatureDetector {
         features.push(this.createFeature(
           'Dynamic Import',
           'js-dynamic-import',
-          ['javascript.statements.import.dynamic'],
+          ['javascript.operators.import'], // 🔧 Correction ici
           'import(',
           filePath,
           lineNumber,
           line
         ));
       }
+            
 
       // Top-level await
       if (line.includes('await') && !line.includes('function') && !line.includes('=>')) {
@@ -276,6 +277,12 @@ export class ESLintFeatureDetector {
 
     lines.forEach((line, index) => {
       const lineNumber = index + 1;
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine.startsWith('//') || trimmedLine.startsWith('/*')) {
+        return;
+      }
+      
 
       // Dialog element
       if (line.includes('<dialog')) {

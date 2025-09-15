@@ -59,70 +59,75 @@ export class BaselineCompute {
    */
   private extractSupportData(result: any): Record<string, string | boolean> {
     const support: Record<string, string | boolean> = {};
-
+  
     try {
       const raw = result?.support;
-
-      // Preferred: handle Map returned by compute-baseline directly
-      // Map keys are Browser objects (with `id`), values are InitialSupport objects (with `text`)
+  
+      // Handle Map returned by compute-baseline
       if (raw instanceof Map) {
         for (const [browser, initial] of raw.entries()) {
-          const browserId = typeof browser === 'string'
-            ? browser
-            : (browser && typeof browser === 'object' && 'id' in browser)
-              ? String((browser as any).id)
-              : String(browser);
-
+          let browserId: string;
+          
+          // Extract browser ID more robustly
+          if (typeof browser === 'string') {
+            browserId = browser;
+          } else if (browser && typeof browser === 'object' && 'id' in browser) {
+            browserId = String(browser.id);
+          } else if (browser && typeof browser === 'object' && 'name' in browser) {
+            browserId = String(browser.name).toLowerCase();
+          } else {
+            browserId = String(browser);
+          }
+  
+          // Extract version/support info more robustly
           let value: string | boolean | undefined;
           if (typeof initial === 'string' || typeof initial === 'boolean' || typeof initial === 'number') {
             value = String(initial);
           } else if (initial && typeof initial === 'object') {
-            // compute-baseline exposes a `.text` representation on InitialSupport
-            if ('text' in initial && typeof (initial as any).text === 'string') {
-              value = (initial as any).text as string;
+            // Try multiple properties
+            if ('version_added' in initial && initial.version_added) {
+              value = String(initial.version_added);
+            } else if ('text' in initial && initial.text) {
+              value = String(initial.text);
+            } else if ('version' in initial && initial.version) {
+              value = String(initial.version);
+            } else {
+              value = true; // Supported but no version info
             }
           }
-
-          if (value !== undefined && value !== '') {
+  
+          if (value !== undefined && value !== '' && value !== 'false') {
             support[browserId] = value;
           }
         }
         return support;
       }
-
-      // Fallback: handle plain-object output (e.g., from JSON.parse(result.toJSON()))
+  
+      // Handle plain object
       if (raw && typeof raw === 'object') {
         for (const [browser, version] of Object.entries(raw)) {
-          if (
-            typeof version === 'string' ||
-            typeof version === 'boolean' ||
-            typeof version === 'number'
-          ) {
-            const value = String(version);
-            if (value !== '') {
-              support[browser] = value;
-            }
+          if (version && version !== 'false') {
+            support[browser] = String(version);
           }
         }
       }
     } catch (error) {
       console.warn('Failed to extract support data:', error);
     }
-
+  
     return support;
-  }
-
+  }  
   /**
    * Calculate browser coverage percentage based on support data
    */
   calculateBrowserCoverage(features: BaselineStatus[]): Record<string, number> {
     const browsers = ['chrome', 'firefox', 'safari', 'edge'];
     const coverage: Record<string, number> = {};
-
+  
     for (const browser of browsers) {
       let supportedCount = 0;
       let totalCount = 0;
-
+  
       for (const feature of features) {
         totalCount++;
         const support = feature.support[browser];
@@ -130,13 +135,12 @@ export class BaselineCompute {
           supportedCount++;
         }
       }
-
-      coverage[browser] = totalCount > 0 ? (supportedCount / totalCount) * 100 : 0;
+        coverage[browser] = totalCount > 0 ? (supportedCount / totalCount) * 100 : 100;
     }
-
+  
     return coverage;
   }
-
+  
   /**
    * Determine the target baseline level based on support
    */
