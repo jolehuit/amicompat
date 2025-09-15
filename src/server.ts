@@ -19,7 +19,7 @@ import { MCPTools } from './tools/index.js';
  *
  * Migrated from Python to TypeScript with:
  * - Native MCP TypeScript SDK
- * - AST-based parsing (no regex)
+ * - ESLint-based feature detection
  * - Local Baseline data via web-features
  * - Zod validation for all I/O
  */
@@ -113,7 +113,7 @@ class AmICompatMCPServer {
 
     // Log startup info to stderr (not interfering with MCP protocol on stdout)
     console.error('🚀 AmICompat MCP Server v2.0.0 started');
-    console.error('📚 TypeScript native with AST parsing');
+    console.error('📚 TypeScript native with ESLint parsing');
     console.error('🌐 Local Baseline data via web-features');
     console.error('✅ All I/O validated with Zod');
     console.error('');

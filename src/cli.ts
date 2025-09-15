@@ -55,7 +55,7 @@ async function main(): Promise<void> {
 
       console.log(chalk.cyan('Version:'), version);
       console.log(chalk.cyan('Architecture:'), 'TypeScript Native');
-      console.log(chalk.cyan('Parsing:'), 'AST-based (Babel, PostCSS, Cheerio)');
+      console.log(chalk.cyan('Parsing:'), 'ESLint-based feature detection');
       console.log(chalk.cyan('Baseline Data:'), 'Local via web-features');
       console.log(chalk.cyan('Validation:'), 'Zod schemas');
       console.log('');
@@ -89,12 +89,12 @@ async function main(): Promise<void> {
       try {
         console.log(chalk.blue.bold(`🧪 Testing parser on: ${filePath}\n`));
 
-        const { ASTParser } = await import('./lib/parsers.js');
+        const { ESLintFeatureDetector } = await import('./lib/eslint-wrapper.js');
         const { readFile } = await import('fs/promises');
 
-        const parser = new ASTParser();
+        const detector = new ESLintFeatureDetector();
         const content = await readFile(filePath, 'utf-8');
-        const fileType = parser.detectFileType(filePath);
+        const fileType = detectFileType(filePath);
 
         if (!fileType) {
           console.error(chalk.red('❌ Unsupported file type'));
@@ -104,19 +104,19 @@ async function main(): Promise<void> {
         console.log(chalk.cyan('File type:'), fileType);
         console.log(chalk.cyan('Content length:'), content.length, 'characters\n');
 
-        const locations = await parser.parseFile({
+        const features = await detector.detectFeatures({
           file_path: filePath,
           content,
           file_type: fileType,
         });
 
-        if (locations.length === 0) {
+        if (features.length === 0) {
           console.log(chalk.yellow('⚠️  No modern web features detected'));
         } else {
-          console.log(chalk.green.bold(`✅ Detected ${locations.length} features:\n`));
-          locations.forEach((loc, index) => {
-            console.log(chalk.green(`${index + 1}.`), `Line ${loc.line}:${loc.column}`);
-            console.log(chalk.gray(`   ${loc.context.trim()}\n`));
+          console.log(chalk.green.bold(`✅ Detected ${features.length} features:\n`));
+          features.forEach((feature, index) => {
+            console.log(chalk.green(`${index + 1}.`), `${feature.feature_name} - Line ${feature.location.line}:${feature.location.column}`);
+            console.log(chalk.gray(`   ${feature.location.context.trim()}\n`));
           });
         }
 
@@ -127,6 +127,31 @@ async function main(): Promise<void> {
     });
 
   await program.parseAsync();
+}
+
+/**
+ * Detect file type from extension
+ */
+function detectFileType(filePath: string): any {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+
+  const typeMap: Record<string, string> = {
+    'js': 'js',
+    'mjs': 'js',
+    'cjs': 'js',
+    'jsx': 'jsx',
+    'ts': 'ts',
+    'mts': 'ts',
+    'cts': 'ts',
+    'tsx': 'tsx',
+    'css': 'css',
+    'scss': 'scss',
+    'sass': 'sass',
+    'html': 'html',
+    'htm': 'html',
+  };
+
+  return extension ? typeMap[extension] || null : null;
 }
 
 main().catch((error) => {

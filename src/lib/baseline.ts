@@ -42,7 +42,10 @@ export class BaselineCompute {
       this.cache.set(cacheKey, status);
       return status;
     } catch (error) {
-      console.warn(`Failed to compute baseline for ${compatKeys.join(', ')}:`, error);
+      // Silently handle compute errors in tests, warn in other environments
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn(`Failed to compute baseline for ${compatKeys.join(', ')}:`, error);
+      }
       return {
         baseline: false,
         support: {},

@@ -29,7 +29,18 @@ export type ExportLastReportInput = z.infer<typeof ExportLastReportInputSchema>;
 // Baseline compatibility targets
 export type BaselineTarget = 'baseline-2025' | 'baseline-2024' | 'baseline-2023' | 'widely' | 'limited';
 
-// Feature detection result
+// ESLint-detected feature with complete metadata
+export interface IdentifiedFeature {
+  feature_name: string;       // "Optional Chaining"
+  feature_id: string;         // "js-optional-chaining"
+  bcd_keys: string[];         // ["javascript.operators.optional_chaining"]
+  syntax_pattern: string;     // "?."
+  ast_node_type: string;      // "OptionalMemberExpression"
+  confidence: 'high' | 'medium' | 'low';
+  location: FeatureLocation;
+}
+
+// Feature detection result for compatibility reporting
 export interface FeatureDetection {
   feature: string;
   locations: FeatureLocation[];
@@ -82,28 +93,8 @@ export interface ParseContext {
 
 export type FileType = 'css' | 'js' | 'ts' | 'jsx' | 'tsx' | 'html' | 'scss' | 'sass';
 
-// AST node types for different parsers
-export interface ASTNode {
-  type: string;
-  loc?: {
-    start: { line: number; column: number };
-    end: { line: number; column: number };
-  };
-}
-
-// CSS AST node (PostCSS)
-export interface CSSNode extends ASTNode {
-  source?: {
-    start: { line: number; column: number };
-    end: { line: number; column: number };
-  };
-}
-
-// JavaScript AST node (Babel)
-export interface JSNode extends ASTNode {
-  start?: number;
-  end?: number;
-}
+// Note: AST parsing is now handled by ESLint internally
+// These legacy AST types are no longer used
 
 // Configuration
 export interface MCPConfig {

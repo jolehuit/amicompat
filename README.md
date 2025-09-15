@@ -16,7 +16,7 @@ Building modern web applications often means encountering browser compatibility 
 
 ## ✅ With AmICompat
 
-AmICompat MCP automatically analyzes your web code and provides instant Web Baseline compatibility insights using AST-based parsing and local Baseline data.
+AmICompat MCP automatically analyzes your web code and provides instant Web Baseline compatibility insights using ESLint-based feature detection and local Baseline data.
 
 ```txt
 Audit my React project for browser compatibility issues using baseline-2025 target
@@ -32,7 +32,7 @@ Analyze my JavaScript code and tell me what browsers support these features
 
 AmICompat provides:
 
-- 🔍 **AST-based analysis** - Deep parsing of JavaScript, TypeScript, CSS, and HTML
+- 🔍 **ESLint-based analysis** - Robust feature detection for JavaScript, TypeScript, CSS, and HTML
 - 📊 **Baseline compatibility reports** - Standards-based browser support analysis
 - 🎯 **Targeted recommendations** - Specific polyfill and fallback suggestions
 - 🚀 **Local processing** - Fast analysis using local Baseline data via web-features
@@ -345,7 +345,7 @@ AmICompat MCP provides the following tools that LLMs can use:
 
 ## 🎯 Supported Technologies
 
-AmICompat uses advanced AST-based parsing to analyze:
+AmICompat uses advanced ESLint-based feature detection to analyze:
 
 ### JavaScript & TypeScript
 - ✅ Optional chaining (`?.`)
@@ -462,32 +462,49 @@ npx amicompat
 AmICompat includes a comprehensive test suite with >90% coverage:
 
 ```bash
-npm test                    # Run all tests
+npm test                    # Run all tests (99 tests)
 npm run test:coverage       # Run with coverage report
 npm run test:integration    # Integration tests only
 npm run test:cli           # Test CLI functionality
+npm run test:parsers        # Test feature detection with real files
 ```
+
+### Test Coverage
+
+- **Unit Tests**: ESLint wrapper, baseline computation, file walker, type validation
+- **Integration Tests**: CLI interface, MCP tools end-to-end functionality
+- **Feature Detection**: 26 comprehensive tests covering JS, CSS, HTML features
+- **Error Handling**: Edge cases, malformed code, missing files
+- **Performance**: Large codebase handling and memory management
 
 ## 🏗️ Architecture
 
 - **TypeScript Native**: Built with modern TypeScript and strict type checking
-- **AST-based Parsing**: Uses Babel, PostCSS, and Cheerio for accurate code analysis
+- **ESLint-based Detection**: Uses ESLint for robust and reliable feature detection
 - **Local Baseline Data**: Powered by web-features and compute-baseline for offline analysis
 - **Zod Validation**: Type-safe MCP tool inputs and outputs
-- **Comprehensive Testing**: Unit and integration tests for reliability
+- **Comprehensive Testing**: Unit and integration tests with >90% coverage
+
+### Why ESLint-based Detection?
+
+- **🛡️ Robustness**: ESLint handles edge cases and syntax variations better than custom parsers
+- **🔧 Maintainability**: Leverages battle-tested, community-maintained parsing logic
+- **⚡ Performance**: Optimized parsing engine designed for large codebases
+- **🚀 Extensibility**: Easy to add new feature detection via ESLint rules
+- **🎯 Accuracy**: Industry-standard parsing with comprehensive syntax support
 
 ### Project Structure
 
 ```
 src/
-├── types/index.ts      # Zod schemas and TypeScript types
+├── types/index.ts         # Zod schemas and TypeScript types
 ├── lib/
-│   ├── baseline.ts     # Local Baseline computation
-│   ├── parsers.ts      # AST parsers (Babel/PostCSS/Cheerio)
-│   └── walker.ts       # File system walker
-├── tools/index.ts      # MCP tools implementation
-├── server.ts           # Main MCP server
-└── cli.ts              # CLI interface
+│   ├── baseline.ts        # Local Baseline computation via compute-baseline
+│   ├── eslint-wrapper.ts  # ESLint-based feature detection
+│   └── walker.ts          # File system walker with filtering
+├── tools/index.ts         # MCP tools implementation
+├── server.ts              # Main MCP server
+└── cli.ts                 # CLI interface with test commands
 ```
 
 ## 🤝 Contributing
@@ -509,10 +526,10 @@ MIT License. See [LICENSE](./LICENSE) for details.
 ## 🙏 Acknowledgments
 
 - **MCP TypeScript SDK** - Native MCP implementation
-- **web-features** - Local Baseline data
-- **Babel** - JavaScript/TypeScript AST parsing
-- **PostCSS** - CSS AST parsing
-- **Cheerio** - HTML parsing
+- **web-features** - Local Baseline data source
+- **compute-baseline** - Baseline status computation
+- **ESLint** - Robust JavaScript/TypeScript feature detection
+- **@html-eslint** - HTML feature detection
 - **Zod** - Runtime type validation
 
 ---

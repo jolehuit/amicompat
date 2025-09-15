@@ -11,10 +11,11 @@ import {
   FeatureDetection,
   ParseContext,
   BaselineTarget,
-  AuditSummary
+  AuditSummary,
+  FileType
 } from '../types/index.js';
 import { FileWalker } from '../lib/walker.js';
-import { ASTParser } from '../lib/parsers.js';
+import { ESLintFeatureDetector } from '../lib/eslint-wrapper.js';
 import { BaselineCompute } from '../lib/baseline.js';
 
 /**
@@ -22,7 +23,7 @@ import { BaselineCompute } from '../lib/baseline.js';
  */
 export class MCPTools {
   private fileWalker = new FileWalker();
-  private astParser = new ASTParser();
+  private featureDetector = new ESLintFeatureDetector();
   private baselineCompute = new BaselineCompute();
   private lastReport: AuditReport | null = null;
 
@@ -70,16 +71,15 @@ export class MCPTools {
             file_type: file.fileType,
           };
 
-          const locations = await this.astParser.parseFile(context);
+          // Use modern ESLint-based feature detection
+          const identifiedFeatures = await this.featureDetector.detectFeatures(context);
 
-          if (locations.length > 0) {
-            // Map features to their baseline status
-            const compatKeys = this.mapFeaturesToCompatKeys(locations);
-            const baselineStatus = await this.baselineCompute.getFeatureStatus(compatKeys, input.target);
+          for (const feature of identifiedFeatures) {
+            const baselineStatus = await this.baselineCompute.getFeatureStatus(feature.bcd_keys, input.target);
 
             allFeatureDetections.push({
-              feature: this.extractFeatureName(locations[0]), // Use first location for feature name
-              locations,
+              feature: feature.feature_name,
+              locations: [feature.location],
               baseline_status: baselineStatus,
             });
           }
@@ -141,7 +141,7 @@ export class MCPTools {
         throw new McpError(ErrorCode.InvalidParams, `File does not exist: ${input.file_path}`);
       }
 
-      const fileType = this.astParser.detectFileType(input.file_path);
+      const fileType = this.detectFileType(input.file_path);
       if (!fileType) {
         throw new McpError(ErrorCode.InvalidParams, `Unsupported file type: ${input.file_path}`);
       }
@@ -153,9 +153,10 @@ export class MCPTools {
         file_type: fileType,
       };
 
-      const locations = await this.astParser.parseFile(context);
+      // Use modern ESLint-based feature detection
+      const identifiedFeatures = await this.featureDetector.detectFeatures(context);
 
-      if (locations.length === 0) {
+      if (identifiedFeatures.length === 0) {
         return {
           content: [{
             type: 'text',
@@ -164,11 +165,19 @@ export class MCPTools {
         };
       }
 
-      // Get baseline status for detected features
-      const compatKeys = this.mapFeaturesToCompatKeys(locations);
-      const baselineStatus = await this.baselineCompute.getFeatureStatus(compatKeys);
+      // Get baseline status for the first detected feature
+      const feature = identifiedFeatures[0];
+      if (!feature) {
+        return {
+          content: [{
+            type: 'text',
+            text: `No valid features found in ${input.file_path}`
+          }]
+        };
+      }
+      const baselineStatus = await this.baselineCompute.getFeatureStatus(feature.bcd_keys);
 
-      const result = this.formatFileAuditResult(input.file_path, locations, baselineStatus);
+      const result = this.formatFileAuditResult(input.file_path, [feature.location], baselineStatus);
 
       return {
         content: [{
@@ -241,7 +250,7 @@ export class MCPTools {
    */
   private safeStringify(obj: any): string {
     const seen = new WeakSet();
-    return JSON.stringify(obj, (key, value) => {
+    return JSON.stringify(obj, (_key, value) => {
       if (typeof value === 'object' && value !== null) {
         if (seen.has(value)) {
           return '[Circular Reference]';
@@ -386,15 +395,8 @@ export class MCPTools {
     return chalk.red('Limited Support');
   }
 
-  private mapFeaturesToCompatKeys(_locations: any[]): string[] {
-    // Simplified mapping - in production this would be more comprehensive
-    return ['css.properties.container', 'css.selectors.has'];
-    }
-
-    private extractFeatureName(_location: any): string {
-    // Extract feature name from location context
-    return 'detected-feature';
-    }
+  // Note: Legacy feature extraction methods removed
+  // All feature detection is now handled by ESLintFeatureDetector
 
   private featureIdToCompatKeys(featureId: string): string[] {
     // Map feature IDs to BCD compat keys
@@ -412,5 +414,30 @@ export class MCPTools {
   private async exportReport(report: AuditReport, exportPath: string): Promise<void> {
     await writeFile(exportPath, JSON.stringify(report, null, 2), 'utf-8');
     console.log(chalk.green(`📊 Report exported to ${exportPath}`));
+  }
+
+  /**
+   * Detect file type from extension
+   */
+  private detectFileType(filePath: string): FileType | null {
+    const extension = filePath.split('.').pop()?.toLowerCase();
+
+    const typeMap: Record<string, FileType> = {
+      'js': 'js',
+      'mjs': 'js',
+      'cjs': 'js',
+      'jsx': 'jsx',
+      'ts': 'ts',
+      'mts': 'ts',
+      'cts': 'ts',
+      'tsx': 'tsx',
+      'css': 'css',
+      'scss': 'scss',
+      'sass': 'sass',
+      'html': 'html',
+      'htm': 'html',
+    };
+
+    return extension ? typeMap[extension] || null : null;
   }
 }

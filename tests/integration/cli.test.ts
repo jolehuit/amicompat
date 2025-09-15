@@ -49,7 +49,7 @@ describe('CLI Integration Tests', () => {
       expect(stdout).toContain('AmICompat MCP Server Information');
       expect(stdout).toContain('Version: 1.0.0');
       expect(stdout).toContain('Architecture: TypeScript Native');
-      expect(stdout).toContain('Parsing: AST-based');
+      expect(stdout).toContain('Parsing: ESLint-based');
       expect(stdout).toContain('Baseline Data: Local via web-features');
       expect(stdout).toContain('Available MCP Tools:');
       expect(stdout).toContain('audit_project');
