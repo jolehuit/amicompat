@@ -33,6 +33,14 @@
     "typescript"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jolehuit/amicompat"
+  },
+  "bugs": {
+    "url": "https://github.com/jolehuit/amicompat/issues"
+  },
+  "homepage": "https://github.com/jolehuit/amicompat#readme",
   "dependencies": {
     "@html-eslint/eslint-plugin": "^0.46.2",
     "@html-eslint/parser": "^0.46.2",
