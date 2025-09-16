@@ -1,6 +1,6 @@
 {
   "name": "amicompat-mcp",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "MCP server for auditing web codebase Baseline compatibility - TypeScript native",
   "type": "module",
   "main": "./dist/server.js",
@@ -17,6 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
+    "prepublishOnly": "node scripts/bump-version-on-publish.js && npm run build",
     "test:integration": "npm run build && npm run test:cli && npm run test:parsers",
     "test:cli": "node dist/cli.js info",
     "test:parsers": "npm run test:parser:js && npm run test:parser:css && npm run test:parser:html",
