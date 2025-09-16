@@ -212,7 +212,7 @@ export class ESLintFeatureDetector {
       }
 
       // Private class fields
-if (/\#[a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line.includes('this.#'))) {
+if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line.includes('this.#'))) {
         features.push(this.createFeature(
           'Private Class Fields',
           'js-private-class-fields',
