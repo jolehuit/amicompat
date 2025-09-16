@@ -14,7 +14,6 @@ export class BaselineCompute {
    */
   private normalizeCompatKeys(compatKeys: string[]): string[] {
     return compatKeys.map((key) => {
-      // Map unsupported sub-features to known ancestors
       if (key === 'javascript.statements.import.dynamic') {
         return 'javascript.statements.import';
       }

@@ -1,6 +1,6 @@
 {
   "name": "amicompat-mcp",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "MCP server for auditing web codebase Baseline compatibility - TypeScript native",
   "type": "module",
   "main": "./dist/server.js",
