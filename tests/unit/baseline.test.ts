@@ -25,7 +25,7 @@ describe('BaselineCompute', () => {
       expect(status).toHaveProperty('baseline');
       expect(status).toHaveProperty('support');
       expect(status).toHaveProperty('discouraged');
-      expect(typeof status.baseline).toBe('string' || 'boolean');
+      expect(['string', 'boolean']).toContain(typeof status.baseline);
       expect(typeof status.support).toBe('object');
       expect(typeof status.discouraged).toBe('boolean');
     });
