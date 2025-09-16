@@ -1,7 +1,7 @@
 {
   "project_path": "/Users/max/Olea/olea-creations",
   "target": "baseline-2025",
-  "timestamp": "2025-09-15T23:02:17.139Z",
+  "timestamp": "2025-09-16T09:06:11.385Z",
   "global_score": 92.9,
   "browser_coverage": {
     "chrome": 100,
@@ -44,16 +44,16 @@
       ],
       "baseline_status": {
         "baseline": "high",
-        "baseline_low_date": "2020-01-15",
-        "baseline_high_date": "2022-07-15",
+        "baseline_low_date": "2018-05-09",
+        "baseline_high_date": "2020-11-09",
         "support": {
-          "chrome": "63",
-          "chrome_android": "63",
-          "edge": "79",
-          "firefox": "67",
-          "firefox_android": "67",
-          "safari": "11.1",
-          "safari_ios": "11.3"
+          "chrome": "61",
+          "chrome_android": "61",
+          "edge": "16",
+          "firefox": "60",
+          "firefox_android": "60",
+          "safari": "10.1",
+          "safari_ios": "10.3"
         },
         "discouraged": false
       }
@@ -638,16 +638,16 @@
       ],
       "baseline_status": {
         "baseline": "high",
-        "baseline_low_date": "2020-01-15",
-        "baseline_high_date": "2022-07-15",
+        "baseline_low_date": "2018-05-09",
+        "baseline_high_date": "2020-11-09",
         "support": {
-          "chrome": "63",
-          "chrome_android": "63",
-          "edge": "79",
-          "firefox": "67",
-          "firefox_android": "67",
-          "safari": "11.1",
-          "safari_ios": "11.3"
+          "chrome": "61",
+          "chrome_android": "61",
+          "edge": "16",
+          "firefox": "60",
+          "firefox_android": "60",
+          "safari": "10.1",
+          "safari_ios": "10.3"
         },
         "discouraged": false
       }

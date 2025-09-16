@@ -9,6 +9,20 @@ export class BaselineCompute {
   private cache = new Map<string, BaselineStatus>();
 
   /**
+   * Normalize compat keys to forms supported by compute-baseline/BCD
+   * Example: map dynamic import subkey to the parent statement key
+   */
+  private normalizeCompatKeys(compatKeys: string[]): string[] {
+    return compatKeys.map((key) => {
+      // Map unsupported sub-features to known ancestors
+      if (key === 'javascript.statements.import.dynamic') {
+        return 'javascript.statements.import';
+      }
+      return key;
+    });
+  }
+
+  /**
    * Get baseline status for a feature using local compute-baseline
    */
   async getFeatureStatus(compatKeys: string[], target: BaselineTarget = 'baseline-2024'): Promise<BaselineStatus> {
@@ -19,7 +33,8 @@ export class BaselineCompute {
         discouraged: false,
       };
     }
-    const cacheKey = `${compatKeys.join(',')}:${target}`;
+    const normalizedKeys = this.normalizeCompatKeys(compatKeys);
+    const cacheKey = `${normalizedKeys.join(',')}:${target}`;
 
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey)!;
@@ -27,7 +42,7 @@ export class BaselineCompute {
 
     try {
       const result = computeBaseline({
-        compatKeys: compatKeys as [string, ...string[]],
+        compatKeys: normalizedKeys as [string, ...string[]],
         checkAncestors: true,
       });
 
