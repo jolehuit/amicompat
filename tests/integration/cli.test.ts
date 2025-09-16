@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { writeFile, mkdir, rm } from 'fs/promises';
+import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const execAsync = promisify(exec);
@@ -45,9 +46,11 @@ describe('CLI Integration Tests', () => {
   describe('info command', () => {
     it('should display server information', async () => {
       const { stdout, stderr } = await execAsync(`node ${cliPath} info`);
+      const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+      const expectedVersionLine = `Version: ${pkg.version}`;
 
       expect(stdout).toContain('AmICompat MCP Server Information');
-      expect(stdout).toContain('Version: 1.1.0');
+      expect(stdout).toContain(expectedVersionLine);
       expect(stdout).toContain('Architecture: TypeScript Native');
       expect(stdout).toContain('Parsing: ESLint-based');
       expect(stdout).toContain('Baseline Data: Local via web-features');
