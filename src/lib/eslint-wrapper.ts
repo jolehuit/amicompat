@@ -229,7 +229,7 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
         features.push(this.createFeature(
           'Dynamic Import',
           'js-dynamic-import',
-          ['javascript.operators.import'], // 🔧 Correction ici
+          ['javascript.statements.import.dynamic'],
           'import(',
           filePath,
           lineNumber,

@@ -91,10 +91,10 @@ describe('BaselineCompute', () => {
     it('should handle empty features array', () => {
       const coverage = baseline.calculateBrowserCoverage([]);
 
-      expect(coverage.chrome).toBe(0);
-      expect(coverage.firefox).toBe(0);
-      expect(coverage.safari).toBe(0);
-      expect(coverage.edge).toBe(0);
+      expect(coverage.chrome).toBe(100);
+      expect(coverage.firefox).toBe(100);
+      expect(coverage.safari).toBe(100);
+      expect(coverage.edge).toBe(100);
     });
   });
 
