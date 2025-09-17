@@ -17,11 +17,10 @@ describe('FileWalker', () => {
     await mkdir(join(testDir, 'dist'), { recursive: true });
 
     // Create test files
-    await writeFile(join(testDir, 'src/index.js'), 'console.log("test");');
-    await writeFile(join(testDir, 'src/style.css'), '.test { color: red; }');
-    await writeFile(join(testDir, 'src/page.html'), '<h1>Test</h1>');
-    await writeFile(join(testDir, 'src/types.ts'), 'interface Test {}');
-    await writeFile(join(testDir, 'src/component.tsx'), 'const Test = () => <div/>;');
+    await writeFile(join(testDir, 'src/styles.css'), '.test { color: red; view-transition-name: slide; }');
+    await writeFile(join(testDir, 'src/main.scss'), '$primary: blue; .btn { color: $primary; }');
+    await writeFile(join(testDir, 'src/page.html'), '<search><input type="search" /></search>');
+    await writeFile(join(testDir, 'src/index.html'), '<div><popover>Content</popover></div>');
     await writeFile(join(testDir, 'README.md'), '# Test Project');
     await writeFile(join(testDir, 'package.json'), '{"name": "test"}');
     await writeFile(join(testDir, 'node_modules/lib.js'), 'module.exports = {};');
@@ -40,7 +39,7 @@ describe('FileWalker', () => {
     it('should find supported files', async () => {
       const options = {
         maxFiles: 100,
-        supportedExtensions: ['.js', '.css', '.html', '.ts', '.tsx'],
+        supportedExtensions: ['.css', '.scss', '.sass', '.html'],
         ignorePatterns: []
       };
 
@@ -49,17 +48,16 @@ describe('FileWalker', () => {
       expect(files.length).toBeGreaterThan(0);
 
       const filenames = files.map(f => f.relativePath);
-      expect(filenames.some(f => f.includes('index.js'))).toBe(true);
-      expect(filenames.some(f => f.includes('style.css'))).toBe(true);
+      expect(filenames.some(f => f.includes('styles.css'))).toBe(true);
+      expect(filenames.some(f => f.includes('main.scss'))).toBe(true);
       expect(filenames.some(f => f.includes('page.html'))).toBe(true);
-      expect(filenames.some(f => f.includes('types.ts'))).toBe(true);
-      expect(filenames.some(f => f.includes('component.tsx'))).toBe(true);
+      expect(filenames.some(f => f.includes('index.html'))).toBe(true);
     });
 
     it('should ignore node_modules by default', async () => {
       const options = {
         maxFiles: 100,
-        supportedExtensions: ['.js'],
+        supportedExtensions: ['.css'],
         ignorePatterns: []
       };
 
@@ -72,7 +70,7 @@ describe('FileWalker', () => {
     it('should ignore dist directory by default', async () => {
       const options = {
         maxFiles: 100,
-        supportedExtensions: ['.js'],
+        supportedExtensions: ['.css'],
         ignorePatterns: []
       };
 
@@ -85,7 +83,7 @@ describe('FileWalker', () => {
     it('should respect maxFiles limit', async () => {
       const options = {
         maxFiles: 2,
-        supportedExtensions: ['.js', '.css', '.html', '.ts', '.tsx'],
+        supportedExtensions: ['.css', '.scss', '.sass', '.html'],
         ignorePatterns: []
       };
 
@@ -97,41 +95,41 @@ describe('FileWalker', () => {
     it('should filter by supported extensions', async () => {
       const options = {
         maxFiles: 100,
-        supportedExtensions: ['.js'],
+        supportedExtensions: ['.css'],
         ignorePatterns: []
       };
 
       const files = await walker.walkDirectory(testDir, options);
 
       files.forEach(file => {
-        expect(file.path.endsWith('.js')).toBe(true);
+        expect(file.path.endsWith('.css')).toBe(true);
       });
     });
 
     it('should respect custom ignore patterns', async () => {
       const options = {
         maxFiles: 100,
-        supportedExtensions: ['.js', '.ts'],
-        ignorePatterns: ['*.ts']
+        supportedExtensions: ['.css', '.scss'],
+        ignorePatterns: ['*.scss']
       };
 
       const files = await walker.walkDirectory(testDir, options);
 
       const filenames = files.map(f => f.relativePath);
-      expect(filenames.some(f => f.endsWith('.ts'))).toBe(false);
+      expect(filenames.some(f => f.endsWith('.scss'))).toBe(false);
     });
   });
 
   describe('readFileContent', () => {
     it('should read file content', async () => {
-      const filePath = join(testDir, 'src/index.js');
+      const filePath = join(testDir, 'src/styles.css');
       const content = await walker.readFileContent(filePath);
 
-      expect(content).toBe('console.log("test");');
+      expect(content).toBe('.test { color: red; view-transition-name: slide; }');
     });
 
     it('should throw for non-existent file', async () => {
-      const filePath = join(testDir, 'non-existent.js');
+      const filePath = join(testDir, 'non-existent.css');
 
       await expect(walker.readFileContent(filePath)).rejects.toThrow();
     });
@@ -139,7 +137,7 @@ describe('FileWalker', () => {
 
   describe('getFileStats', () => {
     it('should return file stats', async () => {
-      const filePath = join(testDir, 'src/index.js');
+      const filePath = join(testDir, 'src/styles.css');
       const stats = await walker.getFileStats(filePath);
 
       expect(stats).toBeDefined();
@@ -148,7 +146,7 @@ describe('FileWalker', () => {
     });
 
     it('should return null for non-existent file', async () => {
-      const filePath = join(testDir, 'non-existent.js');
+      const filePath = join(testDir, 'non-existent.css');
       const stats = await walker.getFileStats(filePath);
 
       expect(stats).toBe(null);
@@ -162,7 +160,7 @@ describe('FileWalker', () => {
     });
 
     it('should return false for file', async () => {
-      const filePath = join(testDir, 'src/index.js');
+      const filePath = join(testDir, 'src/styles.css');
       const result = await walker.isDirectory(filePath);
       expect(result).toBe(false);
     });

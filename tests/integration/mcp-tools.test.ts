@@ -13,53 +13,22 @@ describe('MCP Tools Integration Tests', () => {
     // Create test project structure
     await mkdir(join(testDir, 'src'), { recursive: true });
 
-    // Create test files with modern features
-    await writeFile(
-      join(testDir, 'src/index.js'),
-      `
-// Modern JavaScript features
-const data = user?.profile?.name ?? 'Anonymous';
-
-class MyClass {
-  #privateField = 42;
-
-  getValue() {
-    return this.#privateField;
-  }
-}
-
-// Top-level await
-await import('./module.js');
-`
-    );
+    // Create test files with modern CSS/HTML features
 
     await writeFile(
       join(testDir, 'src/styles.css'),
       `
 /* Modern CSS features */
-.container {
-  display: grid;
-  grid-template-columns: subgrid;
+.slide {
+  view-transition-name: slide-transition;
 }
 
-@container (min-width: 400px) {
-  .card {
-    display: flex;
-  }
+.anchor {
+  anchor-name: --my-anchor;
 }
 
-.button:has(.icon) {
-  padding-left: 2rem;
-}
-
-@layer base {
-  body {
-    margin: 0;
-  }
-}
-
-.element {
-  color: color-mix(in srgb, red 50%, blue);
+.positioned {
+  position-anchor: --my-anchor;
 }
 `
     );
@@ -73,20 +42,17 @@ await import('./module.js');
   <title>Test Page</title>
 </head>
 <body>
+  <search>
+    <input type="search" placeholder="Search...">
+  </search>
+
+  <popover id="myPopover">
+    <p>This is a popover</p>
+  </popover>
+
   <dialog id="myDialog">
     <p>This is a dialog</p>
   </dialog>
-
-  <img src="lazy.jpg" loading="lazy" alt="Lazy image">
-
-  <form>
-    <input type="date" name="date">
-    <input type="color" name="color">
-  </form>
-
-  <my-custom-element>
-    <p>Custom component</p>
-  </my-custom-element>
 </body>
 </html>
 `
@@ -102,18 +68,6 @@ await import('./module.js');
   });
 
   describe('auditFile', () => {
-    it('should audit JavaScript file', async () => {
-      const input = {
-        file_path: join(testDir, 'src/index.js')
-      };
-
-      const result = await tools.auditFile(input);
-
-      expect(result.content).toBeDefined();
-      expect(result.content[0].type).toBe('text');
-      expect(result.content[0].text).toContain('File Analysis:');
-      expect(result.content[0].text).toContain('Features detected:');
-    });
 
     it('should audit CSS file', async () => {
       const input = {
@@ -143,7 +97,7 @@ await import('./module.js');
 
     it('should handle non-existent file', async () => {
       const input = {
-        file_path: join(testDir, 'non-existent.js')
+        file_path: join(testDir, 'non-existent.css')
       };
 
       await expect(tools.auditFile(input)).rejects.toThrow();
@@ -161,8 +115,8 @@ await import('./module.js');
     });
 
     it('should detect no features in simple file', async () => {
-      const simpleFile = join(testDir, 'simple.js');
-      await writeFile(simpleFile, 'console.log("hello");');
+      const simpleFile = join(testDir, 'simple.css');
+      await writeFile(simpleFile, '.basic { color: red; margin: 10px; }');
 
       const input = {
         file_path: simpleFile
@@ -178,7 +132,7 @@ await import('./module.js');
     it('should audit entire project', async () => {
       const input = {
         project_path: testDir,
-        target: 'baseline-2024' as const,
+        target: 'widely' as const,
         max_files: 100
       };
 
@@ -187,18 +141,15 @@ await import('./module.js');
       expect(result.content).toBeDefined();
       expect(result.content[0].type).toBe('text');
       expect(result.content[0].text).toContain('Baseline Compatibility Report');
-      expect(result.content[0].text).toContain('Global Score:');
       expect(result.content[0].text).toContain('Features Detected:');
-      expect(result.content[0].text).toContain('Browser Coverage:');
+      expect(result.content[0].text).toContain('Baseline Violations:');
+      expect(result.content[0].text).toContain('Files Scanned:');
     });
 
     it('should handle different targets', async () => {
-      const targets: Array<'baseline-2025' | 'baseline-2024' | 'baseline-2023' | 'widely' | 'limited'> = [
-        'baseline-2025',
-        'baseline-2024',
-        'baseline-2023',
+      const targets: Array<'widely' | 'newly'> = [
         'widely',
-        'limited'
+        'newly'
       ];
 
       for (const target of targets) {
@@ -218,8 +169,8 @@ await import('./module.js');
       // Create many files
       for (let i = 0; i < 10; i++) {
         await writeFile(
-          join(testDir, `test-${i}.js`),
-          'console.log("test");'
+          join(testDir, `test-${i}.css`),
+          '.basic { color: red; }'
         );
       }
 
@@ -256,55 +207,13 @@ await import('./module.js');
 
     it('should handle file as project path', async () => {
       const input = {
-        project_path: join(testDir, 'src/index.js')
+        project_path: join(testDir, 'src/styles.css')
       };
 
       await expect(tools.auditProject(input)).rejects.toThrow();
     });
   });
 
-  describe('getFeatureStatus', () => {
-    it('should get status for known feature', async () => {
-      const input = {
-        feature: 'css-container-queries'
-      };
-
-      const result = await tools.getFeatureStatus(input);
-
-      expect(result.content).toBeDefined();
-      expect(result.content[0].type).toBe('text');
-      expect(result.content[0].text).toContain('Feature Status:');
-      expect(result.content[0].text).toContain('css-container-queries');
-      expect(result.content[0].text).toContain('Baseline:');
-    });
-
-    it('should handle unknown feature', async () => {
-      const input = {
-        feature: 'unknown-nonexistent-feature'
-      };
-
-      const result = await tools.getFeatureStatus(input);
-
-      expect(result.content).toBeDefined();
-      expect(result.content[0].type).toBe('text');
-      expect(result.content[0].text).toContain('Feature Status:');
-    });
-
-    it('should get status for multiple feature types', async () => {
-      const features = [
-        'css-container-queries',
-        'js-optional-chaining',
-        'css-has-selector'
-      ];
-
-      for (const feature of features) {
-        const input = { feature };
-        const result = await tools.getFeatureStatus(input);
-
-        expect(result.content[0].text).toContain(`Feature Status: ${feature}`);
-      }
-    });
-  });
 
   describe('exportLastReport', () => {
     it('should export report after audit', async () => {
@@ -350,7 +259,7 @@ await import('./module.js');
     it('should provide meaningful error messages', async () => {
       try {
         await tools.auditFile({
-          file_path: '/invalid/path/file.js'
+          file_path: '/invalid/path/file.css'
         });
         expect.fail('Should have thrown');
       } catch (error: any) {

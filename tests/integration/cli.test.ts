@@ -22,16 +22,16 @@ describe('CLI Integration Tests', () => {
     // Create test project
     await mkdir(testDir, { recursive: true });
     await writeFile(
-      join(testDir, 'test.js'),
-      'const data = user?.profile?.name ?? "Anonymous";'
+      join(testDir, 'test.css'),
+      '.slide { view-transition-name: slide-transition; }'
     );
     await writeFile(
-      join(testDir, 'test.css'),
-      '@container (min-width: 400px) { .test { display: flex; } }'
+      join(testDir, 'test.scss'),
+      '.slide { view-transition-name: slide-transition; }'
     );
     await writeFile(
       join(testDir, 'test.html'),
-      '<dialog>Test</dialog><input type="date">'
+      '<search><input type="search" /></search>'
     );
   });
 
@@ -53,26 +53,14 @@ describe('CLI Integration Tests', () => {
       expect(stdout).toContain(expectedVersionLine);
       expect(stdout).toContain('Architecture: TypeScript Native');
       expect(stdout).toContain('Parsing: ESLint-based');
-      expect(stdout).toContain('Baseline Data: Local via web-features');
       expect(stdout).toContain('Available MCP Tools:');
       expect(stdout).toContain('audit_project');
       expect(stdout).toContain('audit_file');
-      expect(stdout).toContain('get_feature_status');
       expect(stdout).toContain('export_last_report');
     });
   });
 
   describe('test-parse command', () => {
-    it('should parse JavaScript files', async () => {
-      const jsFile = join(testDir, 'test.js');
-      const { stdout } = await execAsync(`node ${cliPath} test-parse ${jsFile}`);
-
-      expect(stdout).toContain('Testing parser on:');
-      expect(stdout).toContain('test.js');
-      expect(stdout).toContain('File type: js');
-      expect(stdout).toContain('Detected');
-      expect(stdout).toContain('features:');
-    });
 
     it('should parse CSS files', async () => {
       const cssFile = join(testDir, 'test.css');
@@ -83,6 +71,17 @@ describe('CLI Integration Tests', () => {
       expect(stdout).toContain('File type: css');
       expect(stdout).toContain('Detected');
       expect(stdout).toContain('features:');
+    });
+
+    it('should parse SCSS files', async () => {
+      const scssFile = join(testDir, 'test.scss');
+      const { stdout } = await execAsync(`node ${cliPath} test-parse ${scssFile}`);
+
+      expect(stdout).toContain('Testing parser on:');
+      expect(stdout).toContain('test.scss');
+      expect(stdout).toContain('File type: scss');
+      expect(stdout).toContain('Content length:');
+      // SCSS may not detect features due to CSS parser limitations
     });
 
     it('should parse HTML files', async () => {
@@ -109,7 +108,7 @@ describe('CLI Integration Tests', () => {
     });
 
     it('should handle non-existent files', async () => {
-      const nonExistentFile = join(testDir, 'non-existent.js');
+      const nonExistentFile = join(testDir, 'non-existent.css');
 
       try {
         await execAsync(`node ${cliPath} test-parse ${nonExistentFile}`);
