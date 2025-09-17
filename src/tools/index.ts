@@ -1,11 +1,9 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { writeFile } from 'fs/promises';
-// import { join } from 'path'; // unused for now
 import chalk from 'chalk';
 import {
   AuditProjectInput,
   AuditFileInput,
-  GetFeatureStatusInput,
   ExportLastReportInput,
   AuditReport,
   FeatureDetection,
@@ -16,19 +14,15 @@ import {
 } from '../types/index.js';
 import { FileWalker } from '../lib/walker.js';
 import { ESLintFeatureDetector } from '../lib/eslint-wrapper.js';
-import { BaselineCompute } from '../lib/baseline.js';
 
 /**
  * MCP Tools implementation with full TypeScript support
  */
 export class MCPTools {
   private fileWalker = new FileWalker();
-  private baselineCompute = new BaselineCompute();
   private lastReport: AuditReport | null = null;
 
   private readonly supportedExtensions = [
-    '.js', '.mjs', '.cjs', '.jsx',
-    '.ts', '.mts', '.cts', '.tsx',
     '.css', '.scss', '.sass',
     '.html', '.htm'
   ];
@@ -77,12 +71,9 @@ export class MCPTools {
           const identifiedFeatures = await featureDetector.detectFeatures(context);
 
           for (const feature of identifiedFeatures) {
-            const baselineStatus = await this.baselineCompute.getFeatureStatus(feature.bcd_keys, input.target);
-
             allFeatureDetections.push({
               feature: feature.feature_name,
-              locations: [feature.location],
-              baseline_status: baselineStatus,
+              locations: [feature.location]
             });
           }
 
@@ -98,23 +89,15 @@ export class MCPTools {
       // Deduplicate feature detections by {file, line, feature} key
       const deduplicatedDetections = this.deduplicateFeatureDetections(allFeatureDetections);
 
-     // Après la boucle de traitement des fichiers
-console.log(`📊 Total feature detections collected: ${allFeatureDetections.length}`);
-console.log(`📊 First few features:`, allFeatureDetections.slice(0, 3));
+      // Generate report with deduplicated detections
+      const report = await this.generateReport(
+        input.project_path,
+        input.target,
+        deduplicatedDetections,
+        files.length
+      );
 
-// Generate report with deduplicated detections
-const report = await this.generateReport(
-  input.project_path,
-  input.target,
-  deduplicatedDetections,
-  files.length
-);
-
-console.log(`📊 Report generated with ${report.features_detected.length} features`);
-
-this.lastReport = report;
-console.log(`🐛 lastReport saved with ${this.lastReport.features_detected.length} features`);
-console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
+      this.lastReport = report;
 
       // Format response
       const summary = this.formatAuditSummary(report);
@@ -125,7 +108,7 @@ console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
         return {
           content: [{
             type: 'text',
-            text: summary + `\n✅ Report exported to ${input.export_path}`
+            text: summary + `\\n✅ Report exported to ${input.export_path}`
           }]
         };
       }
@@ -179,19 +162,7 @@ console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
         };
       }
 
-      // Get baseline status for the first detected feature
-      const feature = identifiedFeatures[0];
-      if (!feature) {
-        return {
-          content: [{
-            type: 'text',
-            text: `No valid features found in ${input.file_path}`
-          }]
-        };
-      }
-      const baselineStatus = await this.baselineCompute.getFeatureStatus(feature.bcd_keys);
-
-      const result = this.formatFileAuditResult(input.file_path, [feature.location], baselineStatus);
+      const result = this.formatFileAuditResult(input.file_path, identifiedFeatures);
 
       return {
         content: [{
@@ -209,34 +180,9 @@ console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
   }
 
   /**
-   * Get Baseline status for specific feature
-   */
-  async getFeatureStatus(input: GetFeatureStatusInput): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
-    try {
-      // Convert feature ID to compat keys (simplified mapping)
-      const compatKeys = this.featureIdToCompatKeys(input.feature);
-      const status = await this.baselineCompute.getFeatureStatus(compatKeys);
-
-      const result = this.formatFeatureStatus(input.feature, status);
-
-      return {
-        content: [{
-          type: 'text',
-          text: result
-        }]
-      };
-
-    } catch (error) {
-      throw new McpError(ErrorCode.InternalError, `Feature status lookup failed: ${error}`);
-    }
-  }
-
-  /**
    * Export the last audit report
    */
   async exportLastReport(input: ExportLastReportInput): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
-    console.log(`🐛 Exporting report with ${this.lastReport?.features_detected.length} features`);
-
     try {
       if (!this.lastReport) {
         throw new McpError(ErrorCode.InvalidRequest, 'No audit report available to export');
@@ -283,132 +229,61 @@ console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
     featureDetections: FeatureDetection[],
     filesScanned: number
   ): Promise<AuditReport> {
-    const baselineStatuses = featureDetections.map(f => f.baseline_status);
-    const browserCoverage = this.baselineCompute.calculateBrowserCoverage(baselineStatuses);
-    const recommendations = this.baselineCompute.getRecommendations(baselineStatuses);
-
     // Calculate summary
     const summary: AuditSummary = {
       total_features: featureDetections.length,
-      widely_supported: baselineStatuses.filter(s => this.baselineCompute.getBaselineLevel(s) === 'widely').length,
-      newly_available: baselineStatuses.filter(s => this.baselineCompute.getBaselineLevel(s) === 'newly').length,
-      limited_support: baselineStatuses.filter(s => this.baselineCompute.getBaselineLevel(s) === 'limited').length,
-      no_support: baselineStatuses.filter(s => this.baselineCompute.getBaselineLevel(s) === 'none').length,
+      baseline_violations: featureDetections.length, // All detected features are violations for the target
       files_scanned: filesScanned,
-      weakest_browser: this.findWeakestBrowser(browserCoverage),
     };
-
-    // Calculate global score
-    const globalScore = this.calculateGlobalScore(summary);
 
     return {
       project_path: projectPath,
       target,
       timestamp: new Date().toISOString(),
-      global_score: globalScore,
-      browser_coverage: browserCoverage,
       features_detected: featureDetections,
       summary,
-      recommendations,
     };
   }
 
-  private calculateGlobalScore(summary: AuditSummary): number {
-    if (summary.total_features === 0) return 100;
-
-    const widelyWeight = 1.0;
-    const newlyWeight = 0.8;
-    const limitedWeight = 0.4;
-    const noneWeight = 0.0;
-
-    const score = (
-      summary.widely_supported * widelyWeight +
-      summary.newly_available * newlyWeight +
-      summary.limited_support * limitedWeight +
-      summary.no_support * noneWeight
-    ) / summary.total_features * 100;
-
-    return Math.round(score * 10) / 10;
-  }
-
-  private findWeakestBrowser(browserCoverage: Record<string, number>): string {
-    return Object.entries(browserCoverage).reduce(
-      (min, [browser, score]) => score < min.score ? { browser, score } : min,
-      { browser: 'unknown', score: 100 }
-    ).browser;
-  }
-
   private formatAuditSummary(report: AuditReport): string {
-    const { summary, browser_coverage, recommendations } = report;
+    const { summary } = report;
 
-    let output = chalk.bold.green('🎯 Baseline Compatibility Report\n\n');
+    let output = chalk.bold.green('🎯 Baseline Compatibility Report\\n\\n');
 
-    output += chalk.cyan('📊 Summary:\n');
-    output += `   Global Score: ${chalk.bold(report.global_score.toFixed(1) + '%')} (Target: ${report.target})\n`;
-    output += `   Features Detected: ${summary.total_features}\n`;
-    output += `   Files Scanned: ${summary.files_scanned}\n\n`;
+    output += chalk.cyan('📊 Summary:\\n');
+    output += `   Target: ${report.target}\\n`;
+    output += `   Features Detected: ${summary.total_features}\\n`;
+    output += `   Baseline Violations: ${summary.baseline_violations}\\n`;
+    output += `   Files Scanned: ${summary.files_scanned}\\n\\n`;
 
-    output += chalk.cyan('🌐 Browser Coverage:\n');
-    Object.entries(browser_coverage).forEach(([browser, score]) => {
-      const color = score >= 90 ? chalk.green : score >= 70 ? chalk.yellow : chalk.red;
-      output += `   ${browser}: ${color(score.toFixed(1) + '%')}\n`;
-    });
+    if (summary.total_features > 0) {
+      output += chalk.cyan('🔍 Detected Features:\\n');
+      report.features_detected.slice(0, 10).forEach(feature => {
+        output += `   • ${feature.feature} (${feature.locations.length} location${feature.locations.length > 1 ? 's' : ''})\\n`;
+      });
 
-    output += chalk.cyan('\n📈 Feature Distribution:\n');
-    output += `   ${chalk.green('●')} Widely Supported: ${summary.widely_supported}\n`;
-    output += `   ${chalk.yellow('●')} Newly Available: ${summary.newly_available}\n`;
-    output += `   ${chalk.hex('#FFA500')('●')} Limited Support: ${summary.limited_support}\n`;
-    output += `   ${chalk.red('●')} No Support: ${summary.no_support}\n`;
+      if (report.features_detected.length > 10) {
+        output += `   ... and ${report.features_detected.length - 10} more\\n`;
+      }
+    }
 
-    if (recommendations.length > 0) {
-      output += chalk.cyan('\n💡 Recommendations:\n');
-      recommendations.forEach(rec => {
-        output += `   • ${rec}\n`;
+    return output;
+  }
+
+  private formatFileAuditResult(filePath: string, features: any[]): string {
+    let output = chalk.bold.blue(`📄 File Analysis: ${filePath}\\n\\n`);
+
+    output += chalk.cyan(`Features detected: ${features.length}\\n\\n`);
+
+    if (features.length > 0) {
+      output += chalk.cyan('🔍 Detected Features:\\n');
+      features.forEach((feature, index) => {
+        output += `   ${index + 1}. ${feature.feature_name} at line ${feature.location.line}:${feature.location.column}\\n`;
+        output += `      ${feature.location.context}\\n`;
       });
     }
 
     return output;
-  }
-
-  private formatFileAuditResult(filePath: string, locations: any[], status: any): string {
-    let output = chalk.bold.blue(`📄 File Analysis: ${filePath}\n\n`);
-
-    output += chalk.cyan(`Features detected: ${locations.length}\n`);
-    output += `Baseline status: ${this.formatBaselineStatus(status)}\n\n`;
-
-    output += chalk.cyan('🔍 Detected Features:\n');
-    locations.forEach((loc, index) => {
-      output += `   ${index + 1}. Line ${loc.line}:${loc.column} - ${loc.context}\n`;
-    });
-
-    return output;
-  }
-
-  private formatFeatureStatus(featureId: string, status: any): string {
-    let output = chalk.bold.blue(`🔧 Feature Status: ${featureId}\n\n`);
-
-    output += `Baseline: ${this.formatBaselineStatus(status)}\n`;
-
-    if (status.baseline_low_date) {
-      output += `Available since: ${status.baseline_low_date}\n`;
-    }
-
-    if (status.baseline_high_date) {
-      output += `Widely available since: ${status.baseline_high_date}\n`;
-    }
-
-    output += chalk.cyan('\n🌐 Browser Support:\n');
-    Object.entries(status.support).forEach(([browser, version]) => {
-      output += `   ${browser}: ${version}\n`;
-    });
-
-    return output;
-  }
-
-  private formatBaselineStatus(status: any): string {
-    if (status.baseline === 'high') return chalk.green('Widely Available');
-    if (status.baseline === 'low') return chalk.yellow('Newly Available');
-    return chalk.red('Limited Support');
   }
 
   /**
@@ -424,8 +299,7 @@ console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
         if (!uniqueDetections.has(key)) {
           uniqueDetections.set(key, {
             feature: detection.feature,
-            locations: [location],
-            baseline_status: detection.baseline_status,
+            locations: [location]
           });
         } else {
           // Merge locations if the same feature is detected multiple times
@@ -444,22 +318,6 @@ console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
     return Array.from(uniqueDetections.values());
   }
 
-  // Note: Legacy feature extraction methods removed
-  // All feature detection is now handled by ESLintFeatureDetector
-
-  private featureIdToCompatKeys(featureId: string): string[] {
-    // Map feature IDs to BCD compat keys
-    const mapping: Record<string, string[]> = {
-      'css-container-queries': ['css.at-rules.container'],
-      'css-has-selector': ['css.selectors.has'],
-      'js-optional-chaining': ['javascript.operators.optional_chaining'],
-      'js-nullish-coalescing': ['javascript.operators.nullish_coalescing'],
-      // Add more mappings as needed
-    };
-
-    return mapping[featureId] || [featureId];
-  }
-
   private async exportReport(report: AuditReport, exportPath: string): Promise<void> {
     await writeFile(exportPath, JSON.stringify(report, null, 2), 'utf-8');
     console.log(chalk.green(`📊 Report exported to ${exportPath}`));
@@ -472,14 +330,6 @@ console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
     const extension = filePath.split('.').pop()?.toLowerCase();
 
     const typeMap: Record<string, FileType> = {
-      'js': 'js',
-      'mjs': 'js',
-      'cjs': 'js',
-      'jsx': 'jsx',
-      'ts': 'ts',
-      'mts': 'ts',
-      'cts': 'ts',
-      'tsx': 'tsx',
       'css': 'css',
       'scss': 'scss',
       'sass': 'sass',

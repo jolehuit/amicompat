@@ -5,11 +5,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   AuditProjectInputSchema,
   AuditFileInputSchema,
-  GetFeatureStatusInputSchema,
   ExportLastReportInputSchema,
   type AuditProjectInput,
   type AuditFileInput,
-  type GetFeatureStatusInput,
   type ExportLastReportInput
 } from './types/index.js';
 import { MCPTools } from './tools/index.js';
@@ -74,21 +72,6 @@ class AmICompatMCPServer {
       }
     );
 
-    // Tool: get_feature_status
-    this.server.registerTool(
-      'get_feature_status',
-      {
-        title: 'Get Feature Status',
-        description: 'Get Baseline status for specific feature',
-        inputSchema: {
-          feature: GetFeatureStatusInputSchema.shape.feature,
-        },
-      },
-      async (input: unknown) => {
-        const validatedInput = GetFeatureStatusInputSchema.parse(input) as GetFeatureStatusInput;
-        return await this.tools.getFeatureStatus(validatedInput);
-      }
-    );
 
     // Tool: export_last_report
     this.server.registerTool(
@@ -120,7 +103,6 @@ class AmICompatMCPServer {
     console.error('Available tools:');
     console.error('  • audit_project - Comprehensive project audit');
     console.error('  • audit_file - Single file analysis');
-    console.error('  • get_feature_status - Feature Baseline status');
     console.error('  • export_last_report - Export audit results');
     console.error('');
   }

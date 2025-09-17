@@ -1,10 +1,5 @@
 // Type declarations for ESLint plugins
 
-declare module 'eslint-plugin-es-x' {
-  const plugin: any;
-  export default plugin;
-}
-
 declare module '@eslint/css' {
   const plugin: any;
   export default plugin;

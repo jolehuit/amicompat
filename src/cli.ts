@@ -63,20 +63,17 @@ async function main(): Promise<void> {
       console.log(chalk.green.bold('🛠️  Available MCP Tools:'));
       console.log(chalk.green('  • audit_project') + ' - Comprehensive project audit');
       console.log(chalk.green('  • audit_file') + ' - Single file analysis');
-      console.log(chalk.green('  • get_feature_status') + ' - Feature Baseline status');
       console.log(chalk.green('  • export_last_report') + ' - Export audit results');
       console.log('');
 
       console.log(chalk.yellow.bold('📁 Supported File Types:'));
-      console.log(chalk.yellow('  • JavaScript:'), '.js, .mjs, .cjs, .jsx');
-      console.log(chalk.yellow('  • TypeScript:'), '.ts, .mts, .cts, .tsx');
       console.log(chalk.yellow('  • CSS:'), '.css, .scss, .sass');
       console.log(chalk.yellow('  • HTML:'), '.html, .htm');
       console.log('');
 
       console.log(chalk.magenta.bold('🔧 Configuration:'));
       console.log(chalk.magenta('Set environment variables in your MCP client config:'));
-      console.log(chalk.gray('  AMICOMPAT_DEFAULT_TARGET=baseline-2024'));
+      console.log(chalk.gray('  AMICOMPAT_DEFAULT_TARGET=widely'));
       console.log(chalk.gray('  AMICOMPAT_MAX_FILES=10000'));
       console.log(chalk.gray('  AMICOMPAT_MAX_CONCURRENCY=5'));
     });
@@ -85,7 +82,7 @@ async function main(): Promise<void> {
   .command('audit')
   .description('Audit project for web baseline compatibility')
   .argument('<project>', 'Project directory path')
-  .option('--target <target>', 'Baseline target', 'baseline-2025')
+  .option('--target <target>', 'Baseline target', 'widely')
   .option('--export <path>', 'Export report to JSON file')
   .action(async (projectPath: string, options) => {
     try {
@@ -166,14 +163,6 @@ function detectFileType(filePath: string): any {
   const extension = filePath.split('.').pop()?.toLowerCase();
 
   const typeMap: Record<string, string> = {
-    'js': 'js',
-    'mjs': 'js',
-    'cjs': 'js',
-    'jsx': 'jsx',
-    'ts': 'ts',
-    'mts': 'ts',
-    'cts': 'ts',
-    'tsx': 'tsx',
     'css': 'css',
     'scss': 'scss',
     'sass': 'sass',

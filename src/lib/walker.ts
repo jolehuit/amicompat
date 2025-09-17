@@ -132,14 +132,6 @@ export class FileWalker {
     const extension = filename.split('.').pop()?.toLowerCase();
 
     const typeMap: Record<string, FileType> = {
-      'js': 'js',
-      'mjs': 'js',
-      'cjs': 'js',
-      'jsx': 'jsx',
-      'ts': 'ts',
-      'mts': 'ts',
-      'cts': 'ts',
-      'tsx': 'tsx',
       'css': 'css',
       'scss': 'scss',
       'sass': 'sass',

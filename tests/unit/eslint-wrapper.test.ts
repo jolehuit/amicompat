@@ -10,46 +10,45 @@ describe('ESLintFeatureDetector', () => {
   });
 
   describe('JavaScript feature detection', () => {
-    it('should detect optional chaining', async () => {
+    it('should detect async functions', async () => {
       const context: ParseContext = {
         file_path: 'test.js',
-        content: 'const result = obj?.property?.method?.();',
+        content: 'async function fetchData() { return await fetch("/api"); }',
         file_type: 'js'
       };
 
       const features = await detector.detectFeatures(context);
 
       expect(features).toHaveLength(1);
-      expect(features[0].feature_name).toBe('Optional chaining');
-      expect(features[0].feature_id).toBe('optional-chaining');
-      expect(features[0].bcd_keys).toContain('javascript.operators.optional_chaining');
+      expect(features[0].feature_name).toBe('Async functions');
+      expect(features[0].feature_id).toBe('async-await');
+      expect(features[0].bcd_keys).toContain('javascript.operators.async_function');
       expect(features[0].location.line).toBe(1);
     });
 
-    it('should detect nullish coalescing', async () => {
+    it('should detect classes', async () => {
       const context: ParseContext = {
         file_path: 'test.js',
-        content: 'const value = input ?? defaultValue;',
+        content: 'class MyClass { constructor() {} }',
         file_type: 'js'
       };
 
       const features = await detector.detectFeatures(context);
 
       expect(features).toHaveLength(1);
-      expect(features[0].feature_name).toBe('Nullish coalescing assignment (??=)');
-      expect(features[0].feature_id).toBe('nullish-coalescing');
-      expect(features[0].bcd_keys).toContain('javascript.operators.nullish_coalescing');
+      expect(features[0].feature_name).toBe('Classes');
+      expect(features[0].feature_id).toBe('class-syntax');
+      expect(features[0].bcd_keys).toContain('javascript.classes');
     });
 
-    it('should detect private class fields', async () => {
+    it('should detect generators', async () => {
       const context: ParseContext = {
         file_path: 'test.js',
         content: `
-class MyClass {
-  #privateField = 42;
-
-  getPrivate() {
-    return this.#privateField;
+function* counter() {
+  let i = 0;
+  while (true) {
+    yield i++;
   }
 }`,
         file_type: 'js'
@@ -58,39 +57,24 @@ class MyClass {
       const features = await detector.detectFeatures(context);
 
       expect(features).toHaveLength(1);
-      expect(features[0].feature_name).toBe('Private class fields');
-      expect(features[0].feature_id).toBe('private-class-fields');
-      expect(features[0].bcd_keys).toContain('javascript.classes.private_class_fields');
+      expect(features[0].feature_name).toBe('Generators');
+      expect(features[0].feature_id).toBe('generators');
+      expect(features[0].bcd_keys).toContain('javascript.operators.generator_function');
     });
 
-    it('should detect dynamic imports', async () => {
+    it('should detect arrow functions in Functions feature', async () => {
       const context: ParseContext = {
         file_path: 'test.js',
-        content: 'const module = await import("./dynamic-module.js");',
+        content: 'const add = (a, b) => a + b;',
         file_type: 'js'
       };
 
       const features = await detector.detectFeatures(context);
 
       expect(features).toHaveLength(1);
-      expect(features[0].feature_name).toBe('Dynamic import');
-      expect(features[0].feature_id).toBe('dynamic-import');
-      expect(features[0].bcd_keys).toContain('javascript.operators.import');
-    });
-
-    it('should detect top-level await', async () => {
-      const context: ParseContext = {
-        file_path: 'test.js',
-        content: 'const data = await fetch("/api/data");',
-        file_type: 'js'
-      };
-
-      const features = await detector.detectFeatures(context);
-
-      expect(features).toHaveLength(1);
-      expect(features[0].feature_name).toBe('Top-level await');
-      expect(features[0].feature_id).toBe('top-level-await');
-      expect(features[0].bcd_keys).toContain('javascript.operators.await.top_level');
+      expect(features[0].feature_name).toBe('Functions');
+      expect(features[0].feature_id).toBe('functions');
+      expect(features[0].bcd_keys).toContain('javascript.functions.arrow_functions');
     });
 
     it('should detect BigInt', async () => {
@@ -111,20 +95,16 @@ class MyClass {
     it('should not detect features in comments', async () => {
       const context: ParseContext = {
         file_path: 'test.js',
-        content: `
-// This is optional chaining: obj?.prop
-/*
- * Nullish coalescing: value ?? default
- * Private fields: #field
- */
+        content: `// This is a class: class Example {}
+/* BigInt example: 42n */
 const normalCode = "no modern features here";`,
         file_type: 'js'
       };
 
       const features = await detector.detectFeatures(context);
 
-      // Should not detect any features since they're in comments
-      expect(features).toHaveLength(0);
+      // ESLint should only detect features from actual code, not comments
+      expect(features.length).toBe(0);
     });
   });
 
@@ -148,7 +128,7 @@ const normalCode = "no modern features here";`,
       expect(features.length).toBeGreaterThanOrEqual(0);
 
       if (features.length > 0) {
-        expect(features[0].feature_name).toContain('container');
+        expect(features[0].feature_name).toBe('CSS Container Queries');
         expect(features[0].bcd_keys).toContain('css.at-rules.container');
       }
     });
@@ -169,7 +149,7 @@ const normalCode = "no modern features here";`,
       expect(features.length).toBeGreaterThanOrEqual(0);
 
       if (features.length > 0) {
-        expect(features[0].feature_name).toContain('has');
+        expect(features[0].feature_name).toBe('CSS :has() Selector');
         expect(features[0].bcd_keys).toContain('css.selectors.has');
       }
     });
@@ -191,7 +171,7 @@ const normalCode = "no modern features here";`,
       expect(features.length).toBeGreaterThanOrEqual(0);
 
       if (features.length > 0) {
-        expect(features[0].feature_name).toContain('layer');
+        expect(features[0].feature_name).toBe('CSS Cascade Layers');
         expect(features[0].bcd_keys).toContain('css.at-rules.layer');
       }
     });
@@ -214,7 +194,7 @@ const normalCode = "no modern features here";`,
       expect(features.length).toBeGreaterThanOrEqual(0);
 
       if (features.length > 0) {
-        expect(features[0].feature_name).toContain('dialog');
+        expect(features[0].feature_name).toBe('HTML Dialog Element');
         expect(features[0].bcd_keys).toContain('html.elements.dialog');
       }
     });
@@ -232,7 +212,7 @@ const normalCode = "no modern features here";`,
       expect(features.length).toBeGreaterThanOrEqual(0);
 
       if (features.length > 0) {
-        expect(features[0].feature_name).toContain('loading');
+        expect(features[0].feature_name).toBe('HTML loading Attribute');
         expect(features[0].bcd_keys[0]).toMatch(/html\.(elements|global_attributes)/);
       }
     });
@@ -252,17 +232,17 @@ const normalCode = "no modern features here";`,
       expect(features.length).toBeGreaterThanOrEqual(0);
 
       if (features.length > 0) {
-        expect(features[0].feature_name).toContain('popover');
+        expect(features[0].feature_name).toBe('HTML popover Attribute');
         expect(features[0].bcd_keys).toContain('html.global_attributes.popover');
       }
     });
   });
 
   describe('Target-based detection', () => {
-    it('should detect different features based on target', async () => {
+    it('should detect features regardless of target (audit approach)', async () => {
       const context: ParseContext = {
         file_path: 'test.js',
-        content: 'const value = obj?.prop ?? defaultValue;',
+        content: 'class Example { constructor() {} }',
         file_type: 'js'
       };
 
@@ -270,12 +250,13 @@ const normalCode = "no modern features here";`,
       const widelyDetector = new ESLintFeatureDetector('widely');
       const widelyFeatures = await widelyDetector.detectFeatures(context);
 
-      // Test with newly available target
-      const newlyDetector = new ESLintFeatureDetector('newly');
-      const newlyFeatures = await newlyDetector.detectFeatures(context);
+      // Test with baseline-2024 target
+      const baselineDetector = new ESLintFeatureDetector('baseline-2024');
+      const baselineFeatures = await baselineDetector.detectFeatures(context);
 
-      // Should have different numbers of detected features based on target
-      expect(widelyFeatures.length).toBeGreaterThanOrEqual(newlyFeatures.length);
+      // Should detect the same features (audit approach)
+      expect(widelyFeatures.length).toBe(baselineFeatures.length);
+      expect(widelyFeatures.length).toBe(1);
     });
   });
 
@@ -285,31 +266,32 @@ const normalCode = "no modern features here";`,
         file_path: 'test.js',
         content: `
 class MyClass {
-  #privateField = 42n;
-
-  async getDataIfAvailable() {
-    const result = this.#privateField?.toString();
-    return result ?? "default";
-  }
+  constructor() {}
 }
 
-const module = await import("./module.js");`,
+async function fetchData() {
+  return await fetch("/api");
+}
+
+function* generateNumbers() {
+  yield 1;
+  yield 2;
+}
+
+const bigNum = 42n;`,
         file_type: 'js'
       };
 
       const features = await detector.detectFeatures(context);
 
-      // Should detect multiple features: private fields, BigInt, optional chaining,
-      // nullish coalescing, dynamic import, top-level await
+      // Should detect multiple features: classes, async functions, generators, BigInt
       expect(features.length).toBeGreaterThan(1);
 
-      const featureNames = features.map(f => f.feature_name);
-      expect(featureNames).toContain('Private class fields');
-      expect(featureNames).toContain('BigInt');
-      expect(featureNames).toContain('Optional chaining');
-      expect(featureNames).toContain('Nullish coalescing assignment (??=)');
-      expect(featureNames).toContain('Dynamic import');
-      expect(featureNames).toContain('Top-level await');
+      const featureIds = features.map(f => f.feature_id);
+      expect(featureIds).toContain('class-syntax');
+      expect(featureIds).toContain('async-await');
+      expect(featureIds).toContain('generators');
+      expect(featureIds).toContain('bigint');
     });
   });
 });

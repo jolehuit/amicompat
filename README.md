@@ -8,7 +8,7 @@
 
 Building modern web applications often means encountering browser compatibility issues:
 
-- ❌ **Unclear feature support** - Not knowing which browsers support your code
+- ❌ **Unclear feature support** - Not knowing which browsers support your CSS and HTML
 - ❌ **Runtime surprises** - Features breaking in production on older browsers
 - ❌ **Manual research** - Constantly checking MDN and Can I Use for compatibility
 - ❌ **Guesswork polyfills** - Adding unnecessary or missing polyfills
@@ -16,10 +16,10 @@ Building modern web applications often means encountering browser compatibility 
 
 ## ✅ With AmICompat
 
-AmICompat MCP automatically analyzes your web code and provides instant Web Baseline compatibility insights using ESLint-based feature detection and local Baseline data.
+AmICompat MCP automatically analyzes your CSS and HTML code and provides instant Web Baseline compatibility insights using ESLint-based feature detection.
 
 ```txt
-Audit my React project for browser compatibility issues using baseline-2025 target
+Audit my web project for CSS and HTML compatibility issues using widely available baseline
 ```
 
 ```txt
@@ -27,16 +27,16 @@ Check this CSS file for modern features that might need polyfills
 ```
 
 ```txt
-Analyze my JavaScript code and tell me what browsers support these features
+Analyze my HTML code and tell me what browsers support these elements
 ```
 
 AmICompat provides:
 
-- 🔍 **ESLint-based analysis** - Robust feature detection for JavaScript, TypeScript, CSS, and HTML
+- 🔍 **ESLint-based analysis** - Robust feature detection for CSS and HTML
 - 📊 **Baseline compatibility reports** - Standards-based browser support analysis
-- 🎯 **Targeted recommendations** - Specific polyfill and fallback suggestions
-- 🚀 **Local processing** - Fast analysis using local Baseline data via web-features
-- 📈 **Coverage metrics** - Browser coverage percentages and support levels
+- 🎯 **Targeted recommendations** - Specific baseline violation identification
+- 🚀 **Local processing** - Fast analysis using native ESLint rules
+- 📈 **Coverage metrics** - Clear baseline violation reporting
 
 ## 🛠️ Installation
 
@@ -277,7 +277,7 @@ Add the following configuration to the `mcp` section of your Copilot Coding Agen
     "amicompat-mcp": {
       "command": "npx",
       "args": ["-y", "amicompat-mcp"],
-      "tools": ["audit_project", "audit_file", "get_feature_status", "export_last_report"]
+      "tools": ["audit_project", "audit_file", "export_last_report"]
     }
   }
 }
@@ -330,15 +330,12 @@ AmICompat MCP provides the following tools that LLMs can use:
 
 - **`audit_project`**: Comprehensive project-wide compatibility analysis
   - `project_path` (required): Path to the project directory
-  - `target` (optional): Baseline target (`baseline-2025`, `baseline-2024`,`baseline-2023`, `widely`, `limited`)
+  - `target` (optional): Baseline target (`widely`, `newly`)
   - `max_files` (optional): Maximum number of files to scan (default: 10000)
   - `export_path` (optional): Path to export JSON report
 
 - **`audit_file`**: Single file compatibility analysis
-  - `file_path` (required): Path to the file to analyze
-
-- **`get_feature_status`**: Get Baseline status for specific web features
-  - `feature` (required): Feature identifier (e.g., `css-container-queries`, `js-optional-chaining`)
+  - `file_path` (required): Path to the CSS or HTML file to analyze
 
 - **`export_last_report`**: Export the most recent audit report
   - `path` (required): File path for the exported JSON report
@@ -346,15 +343,6 @@ AmICompat MCP provides the following tools that LLMs can use:
 ## 🎯 Supported Technologies
 
 AmICompat uses advanced ESLint-based feature detection to analyze:
-
-### JavaScript & TypeScript
-- ✅ Optional chaining (`?.`)
-- ✅ Nullish coalescing (`??`)
-- ✅ Private class fields (`#field`)
-- ✅ Top-level await
-- ✅ Dynamic imports
-- ✅ Decorators
-- ✅ And more ES2015+ features
 
 ### CSS
 - ✅ Container queries (`@container`)
@@ -364,10 +352,14 @@ AmICompat uses advanced ESLint-based feature detection to analyze:
 - ✅ Custom properties (`@property`)
 - ✅ `color-mix()` function
 - ✅ CSS nesting
+- ✅ View transitions (`view-transition-name`)
+- ✅ Anchor positioning (`anchor-name`)
 - ✅ And more modern CSS features
 
 ### HTML
 - ✅ Dialog element (`<dialog>`)
+- ✅ Search element (`<search>`)
+- ✅ Popover API (`<popover>`)
 - ✅ Lazy loading attributes
 - ✅ Modern input types
 - ✅ Web components
@@ -378,18 +370,15 @@ AmICompat uses advanced ESLint-based feature detection to analyze:
 
 Choose your compatibility target:
 
-- **`baseline-2025`**: Features available in all major browsers since 2025
-- **`baseline-2024`**: Features available in all major browsers since 2024
-- **`baseline-2023`**: Features available in all major browsers since 2023
-- **`widely`**: High baseline - widely supported across browsers
-- **`limited`**: Limited baseline - some browser support
+- **`widely`**: High baseline - features widely supported across browsers
+- **`newly`**: Features available in newest browser versions
 
 ## 🛟 Usage Examples
 
 ### Project-wide Analysis
 
 ```txt
-Run a baseline compatibility audit on my React project for baseline-2025 target and export the results to compatibility-report.json
+Run a baseline compatibility audit on my web project for widely available features and export the results to compatibility-report.json
 ```
 
 ### Single File Check
@@ -398,20 +387,14 @@ Run a baseline compatibility audit on my React project for baseline-2025 target 
 Analyze this CSS file for container query usage and browser support
 ```
 
-### Feature Status Lookup
-
-```txt
-What's the baseline status of CSS Grid subgrid feature?
-```
-
 ### Custom Rules Integration
 
 Add this rule to your MCP client for automatic compatibility checking:
 
 ```txt
-Always run compatibility analysis with AmICompat when I'm working with modern web features,
-CSS Grid, flexbox, JavaScript ES2015+ syntax, or when I mention browser support concerns.
-Use baseline-2025 as the default target unless specified otherwise.
+Always run compatibility analysis with AmICompat when I'm working with modern CSS features,
+container queries, CSS Grid, HTML elements, or when I mention browser support concerns.
+Use 'widely' as the default target unless specified otherwise.
 ```
 
 ## 📊 Example Output
@@ -420,26 +403,15 @@ Use baseline-2025 as the default target unless specified otherwise.
 🎯 Baseline Compatibility Report
 
 📊 Summary:
-   Global Score: 85.2% (Target: baseline-2025)
-   Features Detected: 15
-   Files Scanned: 127
+   Target: widely
+   Features Detected: 3
+   Baseline Violations: 3
+   Files Scanned: 15
 
-🌐 Browser Coverage:
-   chrome: 95.2%
-   firefox: 87.3%
-   safari: 71.4%
-   edge: 94.1%
-
-📈 Feature Distribution:
-   ● Widely Supported: 8
-   ● Newly Available: 4
-   ● Limited Support: 2
-   ● No Support: 1
-
-💡 Recommendations:
-   • Consider polyfills for limited support features
-   • Pay special attention to safari compatibility (71.4%)
-   • Monitor newly available features for wider adoption
+🔍 Detected Features:
+   • CSS view-transition-name property (1 location)
+   • CSS anchor-name property (1 location)
+   • HTML <search> element (1 location)
 ```
 
 ## 💻 CLI Usage
@@ -451,7 +423,10 @@ AmICompat also provides a command-line interface:
 npx amicompat-mcp info
 
 # Test parser on a file
-npx amicompat-mcp test-parse ./src/app.js
+npx amicompat-mcp test-parse ./src/styles.css
+
+# Audit a project
+npx amicompat-mcp audit ./my-project --target widely
 
 # Start MCP server (default)
 npx amicompat-mcp
@@ -459,31 +434,29 @@ npx amicompat-mcp
 
 ## 🧪 Testing
 
-AmICompat includes a comprehensive test suite with >90% coverage:
+AmICompat includes a comprehensive test suite:
 
 ```bash
-npm test                    # Run all tests (99 tests)
+npm test                    # Run all tests
 npm run test:coverage       # Run with coverage report
 npm run test:integration    # Integration tests only
 npm run test:cli           # Test CLI functionality
-npm run test:parsers        # Test feature detection with real files
 ```
 
 ### Test Coverage
 
-- **Unit Tests**: ESLint wrapper, baseline computation, file walker, type validation
+- **Unit Tests**: ESLint wrapper, file walker, type validation
 - **Integration Tests**: CLI interface, MCP tools end-to-end functionality
-- **Feature Detection**: 26 comprehensive tests covering JS, CSS, HTML features
+- **Feature Detection**: CSS and HTML feature detection tests
 - **Error Handling**: Edge cases, malformed code, missing files
-- **Performance**: Large codebase handling and memory management
 
 ## 🏗️ Architecture
 
 - **TypeScript Native**: Built with modern TypeScript and strict type checking
 - **ESLint-based Detection**: Uses ESLint for robust and reliable feature detection
-- **Local Baseline Data**: Powered by web-features and compute-baseline for offline analysis
+- **Native Baseline Rules**: Powered by `@eslint/css` and `@html-eslint` use-baseline rules
 - **Zod Validation**: Type-safe MCP tool inputs and outputs
-- **Comprehensive Testing**: Unit and integration tests with >90% coverage
+- **Simplified Design**: Clean, maintainable codebase focused on CSS and HTML
 
 ### Why ESLint-based Detection?
 
@@ -499,8 +472,7 @@ npm run test:parsers        # Test feature detection with real files
 src/
 ├── types/index.ts         # Zod schemas and TypeScript types
 ├── lib/
-│   ├── baseline.ts        # Local Baseline computation via compute-baseline
-│   ├── eslint-wrapper.ts  # ESLint-based feature detection
+│   ├── eslint-wrapper.ts  # ESLint-based feature detection for CSS/HTML
 │   └── walker.ts          # File system walker with filtering
 ├── tools/index.ts         # MCP tools implementation
 ├── server.ts              # Main MCP server
@@ -526,10 +498,9 @@ MIT License. See [LICENSE](./LICENSE) for details.
 ## 🙏 Acknowledgments
 
 - **MCP TypeScript SDK** - Native MCP implementation
-- **web-features** - Local Baseline data source
-- **compute-baseline** - Baseline status computation
-- **ESLint** - Robust JavaScript/TypeScript feature detection
-- **@html-eslint** - HTML feature detection
+- **ESLint** - Robust CSS and HTML feature detection
+- **@eslint/css** - CSS feature detection with use-baseline rule
+- **@html-eslint** - HTML feature detection with use-baseline rule
 - **Zod** - Runtime type validation
 
 ---

@@ -1,23 +1,21 @@
-// Test JavaScript with modern features
-const data = user?.profile?.name ?? 'Anonymous';
-
-// Private class fields
+// Test JavaScript with features from web-features
 class MyClass {
-  #privateField = 42;
-  #privateMethod() {
-    return this.#privateField;
-  }
-
-  getValue() {
-    return this.#privateMethod();
+  constructor() {
+    this.value = 42n; // BigInt
   }
 }
 
-// Top-level await
-await import('./module.js');
+// Async functions
+async function fetchData() {
+  return await fetch('/api/data');
+}
 
-// Dynamic import
-const module = await import('./dynamic-module.js');
+// Generator functions
+function* generateNumbers() {
+  yield 1;
+  yield 2;
+  yield 3;
+}
 
-// Nullish coalescing with optional chaining
-const result = obj?.deep?.nested?.value ?? defaultValue;
+// Arrow functions (part of Functions feature)
+const multiply = (a, b) => a * b;

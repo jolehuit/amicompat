@@ -9,9 +9,7 @@
     "amicompat-mcp": "dist/cli.js"
   },
   "scripts": {
-    "generate-baseline": "tsx scripts/generate-baseline-data.ts",
-    "postinstall": "npm run generate-baseline",
-    "build": "npm run generate-baseline && tsc",
+    "build": "tsc",
     "dev": "tsx src/server.ts",
     "start": "node dist/server.js",
     "test": "vitest run",
@@ -50,9 +48,7 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
-    "compute-baseline": "^0.4.0",
     "eslint": "^9.35.0",
-    "web-features": "^1.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -61,7 +57,6 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "@vitest/coverage-v8": "^2.0.0",
-    "eslint-plugin-es-x": "^9.1.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.0.0"
