@@ -41,6 +41,6 @@ jobs:
     - name: Test CLI
       run: |
         node dist/cli.js info
-        echo "console.log('test');" > test.js
-        node dist/cli.js test-parse test.js
-        rm test.js
+        echo ".test { view-transition-name: slide; }" > test.css
+        node dist/cli.js test-parse test.css
+        rm test.css
