@@ -28,6 +28,8 @@ export class ESLintFeatureDetector {
       const cssPlugin = await import('@eslint/css').then((m: any) => m.default || m);
       this.cssEslint = new ESLint({
         overrideConfigFile: true,
+        cwd: '/',
+        ignore: false,
         baseConfig: [
           {
             files: ['**/*.css'],
@@ -53,6 +55,8 @@ export class ESLintFeatureDetector {
       const htmlPlugin = await import('@html-eslint/eslint-plugin').then((m: any) => m.default || m);
       this.htmlEslint = new ESLint({
         overrideConfigFile: true,
+        cwd: '/',
+        ignore: false,
         baseConfig: [
           {
             files: ['**/*.html'],
