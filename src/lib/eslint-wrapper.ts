@@ -1,61 +1,119 @@
 /**
  * ESLint-based feature detection wrapper
- * Replaces custom AST parsers with robust ESLint rules
+ * Uses ESLint plugins for robust feature detection without false positives
  */
 
 import { ESLint } from 'eslint';
-import { ParseContext, IdentifiedFeature, FeatureLocation } from '../types/index.js';
-
-export interface ESLintFeatureDetection {
-  ruleId: string;
-  message: string;
-  line: number;
-  column: number;
-  severity: number;
-  nodeType?: string;
-  source?: string;
-}
+import { ParseContext, IdentifiedFeature, BaselineTarget } from '../types/index.js';
+import { JS_FEATURES, ESLINT_RULE_TO_FEATURE, FEATURE_TO_ESLINT_RULE } from '../generated/js-features.generated.js';
+import { CSS_FEATURES, BCD_KEY_TO_CSS_FEATURE } from '../generated/css-features.generated.js';
+import { HTML_FEATURES, BCD_KEY_TO_HTML_FEATURE } from '../generated/html-features.generated.js';
 
 /**
  * ESLint-powered feature detector
- * More reliable than custom AST parsing
+ * Eliminates false positives by using AST-based analysis
  */
 export class ESLintFeatureDetector {
-  private jsEslint: ESLint;
-  private htmlEslint: ESLint;
+  private jsEslint?: ESLint;
+  private cssEslint?: ESLint;
+  private htmlEslint?: ESLint;
+  private target: BaselineTarget;
+  private initialized = false;
 
-  constructor() {
-    // JavaScript/TypeScript ESLint instance (simplified)
-    this.jsEslint = new ESLint({
-      overrideConfigFile: true,
-      overrideConfig: {
-        rules: {
-          // Basic rules to trigger parsing
-          'no-unused-vars': 'off'
-        }
-      }
-    });
+  constructor(target: BaselineTarget = 'baseline-2024') {
+    this.target = target;
+  }
 
-    // HTML ESLint instance (minimal)
-    this.htmlEslint = new ESLint({
-      overrideConfigFile: true,
-      overrideConfig: {
-        rules: {
-          'no-unused-vars': 'off'
+  private async initialize() {
+    if (this.initialized) return;
+
+    // JavaScript/TypeScript ESLint instance with es-x plugin
+    try {
+      const esxPlugin = await import('eslint-plugin-es-x').then((m: any) => m.default || m);
+      this.jsEslint = new ESLint({
+        overrideConfigFile: true,
+        ignore: false,
+        baseConfig: {
+          languageOptions: {
+            ecmaVersion: 'latest',
+            sourceType: 'module',
+            parserOptions: {
+              ecmaFeatures: {
+                jsx: true
+              }
+            }
+          },
+          plugins: {
+            'es-x': esxPlugin
+          },
+          rules: this.getJSRulesForTarget(this.target) as any
         }
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn('Failed to initialize JS ESLint, falling back to basic detection:', error);
       }
-    });
+    }
+
+    // CSS ESLint instance with @eslint/css plugin
+    try {
+      const cssPlugin = await import('@eslint/css').then((m: any) => m.default || m);
+      this.cssEslint = new ESLint({
+        overrideConfigFile: true,
+        baseConfig: {
+          plugins: {
+            'css': cssPlugin
+          },
+          processor: 'css/css',
+          rules: {
+            'css/use-baseline': ['error', { available: this.getBaselineAvailabilityForTarget(this.target) }]
+          }
+        }
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn('Failed to initialize CSS ESLint, falling back to basic detection:', error);
+      }
+    }
+
+    // HTML ESLint instance with @html-eslint plugin
+    try {
+      const htmlParser = await import('@html-eslint/parser').then((m: any) => m.default || m);
+      const htmlPlugin = await import('@html-eslint/eslint-plugin').then((m: any) => m.default || m);
+      this.htmlEslint = new ESLint({
+        overrideConfigFile: true,
+        baseConfig: {
+          languageOptions: {
+            parser: htmlParser
+          },
+          plugins: {
+            '@html-eslint': htmlPlugin
+          },
+          rules: {
+            '@html-eslint/use-baseline': ['error', { available: this.getBaselineAvailabilityForTarget(this.target) }]
+          }
+        }
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn('Failed to initialize HTML ESLint, falling back to basic detection:', error);
+      }
+    }
+
+    this.initialized = true;
   }
 
   /**
    * Main detection method - routes to appropriate ESLint instance
    */
   async detectFeatures(context: ParseContext): Promise<IdentifiedFeature[]> {
+    await this.initialize();
+
     switch (context.file_type) {
+      case 'tsx':
+      case 'jsx':
       case 'js':
       case 'ts':
-      case 'jsx':
-      case 'tsx':
         return this.detectJavaScriptFeatures(context);
 
       case 'html':
@@ -72,127 +130,336 @@ export class ESLintFeatureDetector {
   }
 
   /**
-   * Detect JavaScript/TypeScript features using ESLint
+   * Detect JavaScript/TypeScript features using ESLint es-x plugin
    */
   private async detectJavaScriptFeatures(context: ParseContext): Promise<IdentifiedFeature[]> {
     const features: IdentifiedFeature[] = [];
 
-    try {
-      // Use ESLint to analyze the code
-      const results = await this.jsEslint.lintText(context.content, {
-        filePath: context.file_path
-      });
+    // Use ESLint if available, otherwise fallback to pattern matching
+    if (this.jsEslint) {
+      try {
+        const results = await this.jsEslint.lintText(context.content, {
+          filePath: context.file_path
+        });
 
       for (const result of results) {
         for (const message of result.messages) {
-          const feature = this.mapESLintToFeature(message, context, 'js');
-          if (feature) {
-            features.push(feature);
+          if (message.ruleId && ESLINT_RULE_TO_FEATURE[message.ruleId]) {
+            const featureData = ESLINT_RULE_TO_FEATURE[message.ruleId];
+            if (!featureData) continue;
+
+            features.push({
+              feature_name: featureData.name,
+              feature_id: featureData.id,
+              bcd_keys: featureData.bcd_keys,
+              syntax_pattern: this.extractSyntaxFromMessage(message.message),
+              ast_node_type: message.nodeType || 'unknown',
+              confidence: 'high',
+              location: {
+                file: context.file_path,
+                line: message.line || 1,
+                column: message.column || 1,
+                context: this.getLineContext(context.content, message.line || 1)
+              }
+            });
           }
         }
       }
 
-      // Also detect features by analyzing AST directly via ESLint's parser
-      const detectedSyntax = this.detectSyntaxFeatures(context.content, context.file_path);
-      features.push(...detectedSyntax);
-
-    } catch (error) {
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn(`ESLint analysis failed for ${context.file_path}:`, error);
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'test') {
+          console.warn(`ESLint analysis failed for ${context.file_path}:`, error);
+        }
       }
+
+      // Always supplement with pattern matching for features not in web-features
+      const patternFeatures = this.detectJavaScriptFeaturesPattern(context);
+      features.push(...patternFeatures);
+    } else {
+      // Fallback to pattern matching when ESLint plugin is not available
+      return this.detectJavaScriptFeaturesPattern(context);
     }
 
     return features;
   }
 
   /**
-   * Detect HTML features using HTML-ESLint
+   * Detect HTML features using HTML-ESLint baseline rules
    */
   private async detectHTMLFeatures(context: ParseContext): Promise<IdentifiedFeature[]> {
     const features: IdentifiedFeature[] = [];
 
-    try {
-      const results = await this.htmlEslint.lintText(context.content, {
-        filePath: context.file_path
-      });
+    if (this.htmlEslint) {
+      try {
+        const results = await this.htmlEslint.lintText(context.content, {
+          filePath: context.file_path
+        });
 
       for (const result of results) {
         for (const message of result.messages) {
-          const feature = this.mapESLintToFeature(message, context, 'html');
-          if (feature) {
-            features.push(feature);
+          if (message.ruleId === '@html-eslint/use-baseline') {
+            const feature = this.parseHTMLBaselineMessage(message, context);
+            if (feature) {
+              features.push(feature);
+            }
           }
         }
       }
 
-      // Also detect modern HTML features by pattern matching
-      const syntaxFeatures = this.detectHTMLSyntaxFeatures(context.content, context.file_path);
-      features.push(...syntaxFeatures);
-
-    } catch (error) {
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn(`HTML-ESLint analysis failed for ${context.file_path}:`, error);
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'test') {
+          console.warn(`HTML-ESLint analysis failed for ${context.file_path}:`, error);
+        }
       }
+
+      // Always supplement with pattern matching for features not covered by ESLint
+      const patternFeatures = this.detectHTMLFeaturesPattern(context);
+      features.push(...patternFeatures);
+    } else {
+      // Fallback to pattern matching
+      return this.detectHTMLFeaturesPattern(context);
     }
 
     return features;
   }
 
   /**
-   * Detect CSS features (simplified for now)
+   * Detect CSS features using @eslint/css baseline rules
    */
   private async detectCSSFeatures(context: ParseContext): Promise<IdentifiedFeature[]> {
-    // For CSS, we'll use pattern matching since ESLint CSS support is limited
-    return this.detectCSSSyntaxFeatures(context.content, context.file_path);
+    const features: IdentifiedFeature[] = [];
+
+    if (this.cssEslint) {
+      try {
+        const results = await this.cssEslint.lintText(context.content, {
+          filePath: context.file_path
+        });
+
+      for (const result of results) {
+        for (const message of result.messages) {
+          if (message.ruleId === 'css/use-baseline') {
+            const feature = this.parseCSSBaselineMessage(message, context);
+            if (feature) {
+              features.push(feature);
+            }
+          }
+        }
+      }
+
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'test') {
+          console.warn(`CSS-ESLint analysis failed for ${context.file_path}:`, error);
+        }
+      }
+
+      // Always supplement with pattern matching for features not covered by ESLint
+      const patternFeatures = this.detectCSSFeaturesPattern(context);
+      features.push(...patternFeatures);
+    } else {
+      // Fallback to pattern matching
+      return this.detectCSSFeaturesPattern(context);
+    }
+
+    return features;
   }
 
   /**
-   * Map ESLint messages to IdentifiedFeature objects
+   * Get JavaScript ESLint rules based on target baseline
    */
-  private mapESLintToFeature(
-    message: any,
-    context: ParseContext,
-    type: 'js' | 'html'
-  ): IdentifiedFeature | null {
-    const ruleMapping = type === 'js' ? this.getJSRuleMapping() : this.getHTMLRuleMapping();
-    const mapping = ruleMapping[message.ruleId];
+  private getJSRulesForTarget(target: BaselineTarget): Record<string, string> {
+    const rules: Record<string, string> = {};
 
-    if (!mapping) return null;
+    for (const feature of JS_FEATURES) {
+      if (!feature.eslint_rule) continue;
+
+      // Only activate rules for features that are beyond the target
+      const shouldActivate = this.shouldActivateRuleForTarget(feature.baseline, target);
+      if (shouldActivate) {
+        rules[`es-x/${feature.eslint_rule}`] = 'error';
+      }
+    }
+
+    return rules;
+  }
+
+  /**
+   * Determine baseline availability setting for CSS/HTML rules
+   */
+  private getBaselineAvailabilityForTarget(target: BaselineTarget): string | number {
+    switch (target) {
+      case 'baseline-2025':
+        return 'newly';
+      case 'baseline-2024':
+      case 'baseline-2023':
+      case 'widely':
+        return 'widely';
+      default:
+        return 'widely';
+    }
+  }
+
+  /**
+   * Determine if a rule should be activated based on feature baseline vs target
+   */
+  private shouldActivateRuleForTarget(featureBaseline: 'high' | 'low' | false, target: BaselineTarget): boolean {
+    switch (target) {
+      case 'widely':
+      case 'baseline-2023':
+      case 'baseline-2024':
+        // Activate for features that are not yet widely available
+        return featureBaseline !== 'high';
+      case 'baseline-2025':
+        // Activate only for features with limited/no support
+        return featureBaseline === false;
+      default:
+        return featureBaseline !== 'high';
+    }
+  }
+
+  /**
+   * Parse CSS baseline message to extract feature information
+   */
+  private parseCSSBaselineMessage(message: any, context: ParseContext): IdentifiedFeature | null {
+    // Extract CSS property/at-rule/selector from baseline message
+    const messageText = message.message;
+
+    // Try to match patterns like "Property 'container-type' is not widely available"
+    const propertyMatch = messageText.match(/Property '([^']+)'/);
+    const atRuleMatch = messageText.match(/At-rule '@([^']+)'/);
+    const selectorMatch = messageText.match(/Selector '([^']+)'/);
+
+    let bcdKey: string | undefined;
+    let syntaxPattern: string | undefined;
+
+    if (propertyMatch) {
+      bcdKey = `css.properties.${propertyMatch[1]}`;
+      syntaxPattern = propertyMatch[1];
+    } else if (atRuleMatch) {
+      bcdKey = `css.at-rules.${atRuleMatch[1]}`;
+      syntaxPattern = `@${atRuleMatch[1]}`;
+    } else if (selectorMatch) {
+      bcdKey = `css.selectors.${selectorMatch[1]}`;
+      syntaxPattern = selectorMatch[1];
+    }
+
+    if (!bcdKey || !BCD_KEY_TO_CSS_FEATURE[bcdKey]) {
+      return null;
+    }
+
+    const featureData = BCD_KEY_TO_CSS_FEATURE[bcdKey];
+    if (!featureData) return null;
 
     return {
-      feature_name: mapping.feature_name,
-      feature_id: mapping.feature_id,
-      bcd_keys: mapping.bcd_keys,
-      syntax_pattern: mapping.syntax_pattern,
-      ast_node_type: message.nodeType || 'unknown',
+      feature_name: featureData.name,
+      feature_id: featureData.id,
+      bcd_keys: [bcdKey],
+      syntax_pattern: syntaxPattern || '',
+      ast_node_type: 'css',
       confidence: 'high',
       location: {
         file: context.file_path,
         line: message.line || 1,
         column: message.column || 1,
-        context: context.content.split('\n')[message.line - 1] || ''
+        context: this.getLineContext(context.content, message.line || 1)
       }
     };
   }
 
   /**
-   * Detect JavaScript syntax features by direct pattern analysis
+   * Parse HTML baseline message to extract feature information
    */
-  private detectSyntaxFeatures(content: string, filePath: string): IdentifiedFeature[] {
-    const features: IdentifiedFeature[] = [];
+  private parseHTMLBaselineMessage(message: any, context: ParseContext): IdentifiedFeature | null {
+    // Extract HTML element/attribute from baseline message
+    const messageText = message.message;
+
+    // Try to match patterns like "Element 'dialog' is not widely available"
+    const elementMatch = messageText.match(/Element '([^']+)'/);
+    const attributeMatch = messageText.match(/Attribute '([^']+)'/);
+
+    let bcdKey: string | undefined;
+    let syntaxPattern: string | undefined;
+
+    if (elementMatch) {
+      bcdKey = `html.elements.${elementMatch[1]}`;
+      syntaxPattern = `<${elementMatch[1]}`;
+    } else if (attributeMatch) {
+      bcdKey = `html.global_attributes.${attributeMatch[1]}`;
+      syntaxPattern = `${attributeMatch[1]}=`;
+    }
+
+    if (!bcdKey || !BCD_KEY_TO_HTML_FEATURE[bcdKey]) {
+      return null;
+    }
+
+    const featureData = BCD_KEY_TO_HTML_FEATURE[bcdKey];
+    if (!featureData) return null;
+
+    return {
+      feature_name: featureData.name,
+      feature_id: featureData.id,
+      bcd_keys: [bcdKey],
+      syntax_pattern: syntaxPattern || '',
+      ast_node_type: 'html',
+      confidence: 'high',
+      location: {
+        file: context.file_path,
+        line: message.line || 1,
+        column: message.column || 1,
+        context: this.getLineContext(context.content, message.line || 1)
+      }
+    };
+  }
+
+  /**
+   * Extract syntax pattern from ESLint error message
+   */
+  private extractSyntaxFromMessage(message: string): string {
+    // Extract common patterns from es-x error messages
+    if (message.includes('optional chaining')) return '?.';
+    if (message.includes('nullish coalescing')) return '??';
+    if (message.includes('private class fields')) return '#';
+    if (message.includes('dynamic import')) return 'import()';
+    if (message.includes('top-level await')) return 'await';
+    if (message.includes('bigint')) return 'n';
+    if (message.includes('logical assignment')) return '&&=';
+
+    return '';
+  }
+
+  /**
+   * Get line context from content
+   */
+  private getLineContext(content: string, lineNumber: number): string {
     const lines = content.split('\n');
+    const line = lines[lineNumber - 1];
+    return line ? line.trim() : '';
+  }
+
+  /**
+   * Fallback JavaScript pattern-based detection
+   */
+  private detectJavaScriptFeaturesPattern(context: ParseContext): IdentifiedFeature[] {
+    const features: IdentifiedFeature[] = [];
+    const lines = context.content.split('\n');
 
     lines.forEach((line, index) => {
       const lineNumber = index + 1;
+      const trimmedLine = line.trim();
+
+      // Skip comments and check for block comments
+      if (trimmedLine.startsWith('//') || trimmedLine.startsWith('/*') ||
+          line.trim().includes('/*') || line.trim().includes('*/')) {
+        return;
+      }
 
       // Optional chaining
       if (line.includes('?.')) {
         features.push(this.createFeature(
-          'Optional Chaining',
-          'js-optional-chaining',
+          'Optional chaining',
+          'optional-chaining',
           ['javascript.operators.optional_chaining'],
           '?.',
-          filePath,
+          context.file_path,
           lineNumber,
           line
         ));
@@ -201,24 +468,24 @@ export class ESLintFeatureDetector {
       // Nullish coalescing
       if (line.includes('??') && !line.includes('??=')) {
         features.push(this.createFeature(
-          'Nullish Coalescing',
-          'js-nullish-coalescing',
+          'Nullish coalescing assignment (??=)',
+          'nullish-coalescing',
           ['javascript.operators.nullish_coalescing'],
           '??',
-          filePath,
+          context.file_path,
           lineNumber,
           line
         ));
       }
 
       // Private class fields
-if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line.includes('this.#'))) {
+      if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line.includes('this.#'))) {
         features.push(this.createFeature(
-          'Private Class Fields',
-          'js-private-class-fields',
+          'Private class fields',
+          'private-class-fields',
           ['javascript.classes.private_class_fields'],
           '#',
-          filePath,
+          context.file_path,
           lineNumber,
           line
         ));
@@ -227,25 +494,24 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
       // Dynamic imports
       if (line.includes('import(')) {
         features.push(this.createFeature(
-          'Dynamic Import',
-          'js-dynamic-import',
-          ['javascript.statements.import.dynamic'],
+          'Dynamic import',
+          'dynamic-import',
+          ['javascript.operators.import'],
           'import(',
-          filePath,
+          context.file_path,
           lineNumber,
           line
         ));
       }
-            
 
       // Top-level await
       if (line.includes('await') && !line.includes('function') && !line.includes('=>')) {
         features.push(this.createFeature(
-          'Top-level Await',
-          'js-top-level-await',
+          'Top-level await',
+          'top-level-await',
           ['javascript.operators.await.top_level'],
           'await',
-          filePath,
+          context.file_path,
           lineNumber,
           line
         ));
@@ -255,10 +521,10 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
       if (/\d+n\b/.test(line)) {
         features.push(this.createFeature(
           'BigInt',
-          'js-bigint',
+          'bigint',
           ['javascript.builtins.BigInt'],
           'n',
-          filePath,
+          context.file_path,
           lineNumber,
           line
         ));
@@ -269,83 +535,11 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
   }
 
   /**
-   * Detect HTML syntax features
+   * Fallback CSS pattern-based detection
    */
-  private detectHTMLSyntaxFeatures(content: string, filePath: string): IdentifiedFeature[] {
+  private detectCSSFeaturesPattern(context: ParseContext): IdentifiedFeature[] {
     const features: IdentifiedFeature[] = [];
-    const lines = content.split('\n');
-
-    lines.forEach((line, index) => {
-      const lineNumber = index + 1;
-      const trimmedLine = line.trim();
-      
-      if (trimmedLine.startsWith('//') || trimmedLine.startsWith('/*')) {
-        return;
-      }
-      
-
-      // Dialog element
-      if (line.includes('<dialog')) {
-        features.push(this.createFeature(
-          'HTML Dialog Element',
-          'html-dialog-element',
-          ['html.elements.dialog'],
-          '<dialog',
-          filePath,
-          lineNumber,
-          line
-        ));
-      }
-
-      // Loading attribute
-      if (line.includes('loading="lazy"') || line.includes('loading="eager"')) {
-        features.push(this.createFeature(
-          'HTML loading Attribute',
-          'html-loading-attribute',
-          ['html.elements.img.loading'],
-          'loading=',
-          filePath,
-          lineNumber,
-          line
-        ));
-      }
-
-      // Popover attribute
-      if (line.includes('popover=')) {
-        features.push(this.createFeature(
-          'HTML popover Attribute',
-          'html-popover-attribute',
-          ['html.global_attributes.popover'],
-          'popover=',
-          filePath,
-          lineNumber,
-          line
-        ));
-      }
-
-      // Custom elements
-      if (/<[a-z]+-[a-z-]+/.test(line)) {
-        features.push(this.createFeature(
-          'HTML Custom Elements',
-          'html-custom-elements',
-          ['api.CustomElementRegistry'],
-          '-',
-          filePath,
-          lineNumber,
-          line
-        ));
-      }
-    });
-
-    return features;
-  }
-
-  /**
-   * Detect CSS syntax features
-   */
-  private detectCSSSyntaxFeatures(content: string, filePath: string): IdentifiedFeature[] {
-    const features: IdentifiedFeature[] = [];
-    const lines = content.split('\n');
+    const lines = context.content.split('\n');
 
     lines.forEach((line, index) => {
       const lineNumber = index + 1;
@@ -354,10 +548,10 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
       if (line.includes('@container')) {
         features.push(this.createFeature(
           'CSS Container Queries',
-          'css-container-queries',
+          'container-queries',
           ['css.at-rules.container'],
           '@container',
-          filePath,
+          context.file_path,
           lineNumber,
           line
         ));
@@ -367,10 +561,23 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
       if (line.includes(':has(')) {
         features.push(this.createFeature(
           'CSS :has() Selector',
-          'css-has-selector',
+          'has-selector',
           ['css.selectors.has'],
           ':has(',
-          filePath,
+          context.file_path,
+          lineNumber,
+          line
+        ));
+      }
+
+      // Cascade layers
+      if (line.includes('@layer')) {
+        features.push(this.createFeature(
+          'CSS Cascade Layers',
+          'cascade-layers',
+          ['css.at-rules.layer'],
+          '@layer',
+          context.file_path,
           lineNumber,
           line
         ));
@@ -380,23 +587,76 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
       if (line.includes('subgrid')) {
         features.push(this.createFeature(
           'CSS Subgrid',
-          'css-subgrid',
+          'subgrid',
           ['css.properties.grid-template-columns.subgrid'],
           'subgrid',
-          filePath,
+          context.file_path,
+          lineNumber,
+          line
+        ));
+      }
+    });
+
+    return features;
+  }
+
+  /**
+   * Fallback HTML pattern-based detection
+   */
+  private detectHTMLFeaturesPattern(context: ParseContext): IdentifiedFeature[] {
+    const features: IdentifiedFeature[] = [];
+    const lines = context.content.split('\n');
+
+    lines.forEach((line, index) => {
+      const lineNumber = index + 1;
+
+      // Dialog element
+      if (line.includes('<dialog')) {
+        features.push(this.createFeature(
+          'HTML Dialog Element',
+          'dialog-element',
+          ['html.elements.dialog'],
+          '<dialog',
+          context.file_path,
           lineNumber,
           line
         ));
       }
 
-      // CSS layers
-      if (line.includes('@layer')) {
+      // Loading attribute
+      if (line.includes('loading=')) {
         features.push(this.createFeature(
-          'CSS Cascade Layers',
-          'css-cascade-layers',
-          ['css.at-rules.layer'],
-          '@layer',
-          filePath,
+          'HTML loading Attribute',
+          'loading-attribute',
+          ['html.elements.img.loading'],
+          'loading=',
+          context.file_path,
+          lineNumber,
+          line
+        ));
+      }
+
+      // Popover attribute
+      if (line.includes('popover=')) {
+        features.push(this.createFeature(
+          'HTML popover Attribute',
+          'popover-attribute',
+          ['html.global_attributes.popover'],
+          'popover=',
+          context.file_path,
+          lineNumber,
+          line
+        ));
+      }
+
+      // Custom elements
+      if (/<[a-z]+-[a-z-]+/.test(line)) {
+        features.push(this.createFeature(
+          'HTML Custom Elements',
+          'custom-elements',
+          ['api.CustomElementRegistry'],
+          '-',
+          context.file_path,
           lineNumber,
           line
         ));
@@ -423,7 +683,7 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
       feature_id: id,
       bcd_keys: bcdKeys,
       syntax_pattern: syntax,
-      ast_node_type: 'detected',
+      ast_node_type: 'pattern-detected',
       confidence: 'high',
       location: {
         file: filePath,
@@ -432,59 +692,5 @@ if (/[#][a-zA-Z_$][a-zA-Z0-9_$]*/.test(line) && (line.includes('class ') || line
         context: context.trim()
       }
     };
-  }
-
-  /**
-   * JavaScript ESLint rule mappings
-   */
-  private getJSRuleMapping(): Record<string, any> {
-    return {
-      'prefer-optional-chaining': {
-        feature_name: 'Optional Chaining',
-        feature_id: 'js-optional-chaining',
-        bcd_keys: ['javascript.operators.optional_chaining'],
-        syntax_pattern: '?.'
-      },
-      'prefer-nullish-coalescing': {
-        feature_name: 'Nullish Coalescing',
-        feature_id: 'js-nullish-coalescing',
-        bcd_keys: ['javascript.operators.nullish_coalescing'],
-        syntax_pattern: '??'
-      },
-      'logical-assignment-operators': {
-        feature_name: 'Logical Assignment',
-        feature_id: 'js-logical-assignment',
-        bcd_keys: ['javascript.operators.logical_and_assignment'],
-        syntax_pattern: '&&='
-      }
-    };
-  }
-
-  /**
-   * HTML ESLint rule mappings
-   */
-  private getHTMLRuleMapping(): Record<string, any> {
-    return {
-      '@html-eslint/require-button-type': {
-        feature_name: 'HTML Button Type',
-        feature_id: 'html-button-type',
-        bcd_keys: ['html.elements.button.type'],
-        syntax_pattern: 'type='
-      },
-      '@html-eslint/require-meta-viewport': {
-        feature_name: 'HTML Meta Viewport',
-        feature_id: 'html-meta-viewport',
-        bcd_keys: ['html.elements.meta.name.viewport'],
-        syntax_pattern: 'viewport'
-      }
-    };
-  }
-
-  /**
-   * Convert IdentifiedFeature[] to FeatureLocation[] for backward compatibility
-   */
-  async detectFeaturesLegacy(context: ParseContext): Promise<FeatureLocation[]> {
-    const identifiedFeatures = await this.detectFeatures(context);
-    return identifiedFeatures.map(feature => feature.location);
   }
 }

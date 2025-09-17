@@ -23,7 +23,6 @@ import { BaselineCompute } from '../lib/baseline.js';
  */
 export class MCPTools {
   private fileWalker = new FileWalker();
-  private featureDetector = new ESLintFeatureDetector();
   private baselineCompute = new BaselineCompute();
   private lastReport: AuditReport | null = null;
 
@@ -62,6 +61,9 @@ export class MCPTools {
       const allFeatureDetections: FeatureDetection[] = [];
       let processedCount = 0;
 
+      // Create feature detector with target
+      const featureDetector = new ESLintFeatureDetector(input.target);
+
       for (const file of files) {
         try {
           const content = await this.fileWalker.readFileContent(file.path);
@@ -72,7 +74,7 @@ export class MCPTools {
           };
 
           // Use modern ESLint-based feature detection
-          const identifiedFeatures = await this.featureDetector.detectFeatures(context);
+          const identifiedFeatures = await featureDetector.detectFeatures(context);
 
           for (const feature of identifiedFeatures) {
             const baselineStatus = await this.baselineCompute.getFeatureStatus(feature.bcd_keys, input.target);
@@ -93,15 +95,26 @@ export class MCPTools {
         }
       }
 
-      // Generate report
-      const report = await this.generateReport(
-        input.project_path,
-        input.target,
-        allFeatureDetections,
-        files.length
-      );
+      // Deduplicate feature detections by {file, line, feature} key
+      const deduplicatedDetections = this.deduplicateFeatureDetections(allFeatureDetections);
 
-      this.lastReport = report;
+     // Après la boucle de traitement des fichiers
+console.log(`📊 Total feature detections collected: ${allFeatureDetections.length}`);
+console.log(`📊 First few features:`, allFeatureDetections.slice(0, 3));
+
+// Generate report with deduplicated detections
+const report = await this.generateReport(
+  input.project_path,
+  input.target,
+  deduplicatedDetections,
+  files.length
+);
+
+console.log(`📊 Report generated with ${report.features_detected.length} features`);
+
+this.lastReport = report;
+console.log(`🐛 lastReport saved with ${this.lastReport.features_detected.length} features`);
+console.log(`🐛 lastReport global score: ${this.lastReport.global_score}`);
 
       // Format response
       const summary = this.formatAuditSummary(report);
@@ -154,7 +167,8 @@ export class MCPTools {
       };
 
       // Use modern ESLint-based feature detection
-      const identifiedFeatures = await this.featureDetector.detectFeatures(context);
+      const featureDetector = new ESLintFeatureDetector();
+      const identifiedFeatures = await featureDetector.detectFeatures(context);
 
       if (identifiedFeatures.length === 0) {
         return {
@@ -221,6 +235,8 @@ export class MCPTools {
    * Export the last audit report
    */
   async exportLastReport(input: ExportLastReportInput): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+    console.log(`🐛 Exporting report with ${this.lastReport?.features_detected.length} features`);
+
     try {
       if (!this.lastReport) {
         throw new McpError(ErrorCode.InvalidRequest, 'No audit report available to export');
@@ -393,6 +409,39 @@ export class MCPTools {
     if (status.baseline === 'high') return chalk.green('Widely Available');
     if (status.baseline === 'low') return chalk.yellow('Newly Available');
     return chalk.red('Limited Support');
+  }
+
+  /**
+   * Deduplicate feature detections by file, line, and feature combination
+   */
+  private deduplicateFeatureDetections(detections: FeatureDetection[]): FeatureDetection[] {
+    const uniqueDetections = new Map<string, FeatureDetection>();
+
+    for (const detection of detections) {
+      for (const location of detection.locations) {
+        const key = `${location.file}:${location.line}:${detection.feature}`;
+
+        if (!uniqueDetections.has(key)) {
+          uniqueDetections.set(key, {
+            feature: detection.feature,
+            locations: [location],
+            baseline_status: detection.baseline_status,
+          });
+        } else {
+          // Merge locations if the same feature is detected multiple times
+          const existing = uniqueDetections.get(key)!;
+          if (!existing.locations.some(loc =>
+            loc.file === location.file &&
+            loc.line === location.line &&
+            loc.column === location.column
+          )) {
+            existing.locations.push(location);
+          }
+        }
+      }
+    }
+
+    return Array.from(uniqueDetections.values());
   }
 
   // Note: Legacy feature extraction methods removed
