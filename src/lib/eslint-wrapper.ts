@@ -152,8 +152,7 @@ export class ESLintFeatureDetector {
         
         console.log(`[detectHTMLFeatures] ESLint returned ${results.length} results`);
         
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
+        results.forEach((result, i) => {
           console.log(`[detectHTMLFeatures] Result ${i}:`, {
             filePath: result.filePath,
             messageCount: result.messages.length,
@@ -162,8 +161,7 @@ export class ESLintFeatureDetector {
             suppressedMessages: result.suppressedMessages?.length || 0
           });
           
-          for (let j = 0; j < result.messages.length; j++) {
-            const message = result.messages[j];
+          result.messages.forEach((message, j) => {
             console.log(`[detectHTMLFeatures] Message ${j}:`, {
               ruleId: message.ruleId,
               severity: message.severity,
@@ -181,8 +179,8 @@ export class ESLintFeatureDetector {
                 console.log(`[detectHTMLFeatures] Failed to parse message: ${message.message}`);
               }
             }
-          }
-        }
+          });
+        });
 
       } catch (error) {
         console.error(`[detectHTMLFeatures] HTML-ESLint analysis failed:`, error);
@@ -214,8 +212,7 @@ export class ESLintFeatureDetector {
         
         console.log(`[detectCSSFeatures] ESLint returned ${results.length} results`);
         
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
+        results.forEach((result, i) => {
           console.log(`[detectCSSFeatures] Result ${i}:`, {
             filePath: result.filePath,
             messageCount: result.messages.length,
@@ -224,8 +221,7 @@ export class ESLintFeatureDetector {
             suppressedMessages: result.suppressedMessages?.length || 0
           });
           
-          for (let j = 0; j < result.messages.length; j++) {
-            const message = result.messages[j];
+          result.messages.forEach((message, j) => {
             console.log(`[detectCSSFeatures] Message ${j}:`, {
               ruleId: message.ruleId,
               severity: message.severity,
@@ -243,8 +239,8 @@ export class ESLintFeatureDetector {
                 console.log(`[detectCSSFeatures] Failed to parse message: ${message.message}`);
               }
             }
-          }
-        }
+          });
+        });
 
       } catch (error) {
         console.error(`[detectCSSFeatures] CSS-ESLint analysis failed:`, error);
