@@ -5,7 +5,6 @@
 
 import { ESLint } from 'eslint';
 import { ParseContext, IdentifiedFeature } from '../types/index.js';
-import { dirname } from 'path';
 
 /**
  * ESLint-powered feature detector
@@ -16,28 +15,22 @@ export class ESLintFeatureDetector {
   private htmlEslint?: ESLint;
   private target: 'widely' | 'newly';
   private initialized = false;
-  private currentProjectPath?: string;
 
   constructor(target: 'widely' | 'newly' = 'widely') {
     this.target = target;
   }
 
-  private async initialize(filePath: string) {
-    // Use the directory of the file being analyzed as cwd
-    const projectDir = dirname(filePath);
-    
-    // Re-initialize if project path changes
-    if (this.initialized && this.currentProjectPath === projectDir) return;
-    
-    this.currentProjectPath = projectDir;
+  private async initialize() {
+    if (this.initialized) return;
 
     // CSS ESLint instance with @eslint/css plugin
     try {
       const cssPlugin = await import('@eslint/css').then((m: any) => m.default || m);
+      const projectRoot = new URL('../../..', import.meta.url).pathname;
 
       this.cssEslint = new ESLint({
         overrideConfigFile: true,
-        cwd: projectDir, // Use the analyzed file's directory
+        cwd: projectRoot,
         ignore: false,
         baseConfig: [
           {
@@ -62,10 +55,11 @@ export class ESLintFeatureDetector {
     try {
       const htmlParser = await import('@html-eslint/parser').then((m: any) => m.default || m);
       const htmlPlugin = await import('@html-eslint/eslint-plugin').then((m: any) => m.default || m);
+      const projectRoot = new URL('../../..', import.meta.url).pathname;
 
       this.htmlEslint = new ESLint({
         overrideConfigFile: true,
-        cwd: projectDir, // Use the analyzed file's directory
+        cwd: projectRoot,
         ignore: false,
         baseConfig: [
           {
@@ -95,8 +89,7 @@ export class ESLintFeatureDetector {
    * Main detection method - routes to appropriate ESLint instance
    */
   async detectFeatures(context: ParseContext): Promise<IdentifiedFeature[]> {
-    // Initialize with the current file's path
-    await this.initialize(context.file_path);
+    await this.initialize();
 
     switch (context.file_type) {
       case 'html':
@@ -112,6 +105,7 @@ export class ESLintFeatureDetector {
     }
   }
 
+
   /**
    * Detect HTML features using HTML-ESLint baseline rules
    */
@@ -120,8 +114,11 @@ export class ESLintFeatureDetector {
 
     if (this.htmlEslint) {
       try {
+        // Use a virtual path to avoid ESLint v9's outside-base-path issue
+        const virtualPath = `virtual.html`;
+        
         const results = await this.htmlEslint.lintText(context.content, {
-          filePath: context.file_path
+          filePath: virtualPath  // Virtual path that matches **/*.html pattern
         });
 
         for (const result of results) {
@@ -158,8 +155,11 @@ export class ESLintFeatureDetector {
 
     if (this.cssEslint) {
       try {
+        // Use a virtual path to avoid ESLint v9's outside-base-path issue
+        const virtualPath = `virtual.css`;
+        
         const results = await this.cssEslint.lintText(context.content, {
-          filePath: context.file_path
+          filePath: virtualPath  // Virtual path that matches **/*.css pattern
         });
 
         for (const result of results) {
@@ -188,6 +188,9 @@ export class ESLintFeatureDetector {
     return features;
   }
 
+
+
+
   /**
    * Parse baseline message to extract feature information
    */
@@ -201,8 +204,6 @@ export class ESLintFeatureDetector {
       const propertyMatch = messageText.match(/Property '([^']+)'/);
       const atRuleMatch = messageText.match(/At-rule '@([^']+)'/);
       const selectorMatch = messageText.match(/Selector '([^']+)'/);
-      const valueMatch = messageText.match(/Value '([^']+)'/);
-      const functionMatch = messageText.match(/Function '([^']+)'/);
 
       if (propertyMatch) {
         syntaxPattern = propertyMatch[1];
@@ -213,36 +214,22 @@ export class ESLintFeatureDetector {
       } else if (selectorMatch) {
         syntaxPattern = selectorMatch[1];
         featureName = `CSS ${selectorMatch[1]} selector`;
-      } else if (valueMatch) {
-        syntaxPattern = valueMatch[1];
-        featureName = `CSS ${valueMatch[1]} value`;
-      } else if (functionMatch) {
-        syntaxPattern = `${functionMatch[1]}()`;
-        featureName = `CSS ${functionMatch[1]}() function`;
       }
     } else if (type === 'html') {
       // Try to match patterns like "Element 'dialog' is not widely available"
       const elementMatch = messageText.match(/Element '([^']+)'/);
       const attributeMatch = messageText.match(/Attribute '([^']+)'/);
-      const valueMatch = messageText.match(/Value '([^']+)'/);
 
       if (elementMatch) {
-        syntaxPattern = `<${elementMatch[1]}>`;
+        syntaxPattern = `<${elementMatch[1]}`;
         featureName = `HTML ${elementMatch[1]} element`;
       } else if (attributeMatch) {
         syntaxPattern = `${attributeMatch[1]}=`;
         featureName = `HTML ${attributeMatch[1]} attribute`;
-      } else if (valueMatch) {
-        syntaxPattern = valueMatch[1];
-        featureName = `HTML ${valueMatch[1]} value`;
       }
     }
 
     if (!syntaxPattern || !featureName) {
-      // Log unmatched messages for debugging
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn(`Could not parse baseline message: ${messageText}`);
-      }
       return null;
     }
 
@@ -262,6 +249,7 @@ export class ESLintFeatureDetector {
     };
   }
 
+
   /**
    * Get line context from content
    */
@@ -270,4 +258,5 @@ export class ESLintFeatureDetector {
     const line = lines[lineNumber - 1];
     return line ? line.trim() : '';
   }
+
 }
