@@ -5,10 +5,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   AuditProjectInputSchema,
   AuditFileInputSchema,
-  ExportLastReportInputSchema,
   type AuditProjectInput,
-  type AuditFileInput,
-  type ExportLastReportInput
+  type AuditFileInput
 } from './types/index.js';
 import { MCPTools } from './tools/index.js';
 
@@ -73,21 +71,6 @@ class AmICompatMCPServer {
     );
 
 
-    // Tool: export_last_report
-    this.server.registerTool(
-      'export_last_report',
-      {
-        title: 'Export Last Report',
-        description: 'Export the most recent audit to JSON file',
-        inputSchema: {
-          path: ExportLastReportInputSchema.shape.path,
-        },
-      },
-      async (input: unknown) => {
-        const validatedInput = ExportLastReportInputSchema.parse(input) as ExportLastReportInput;
-        return await this.tools.exportLastReport(validatedInput);
-      }
-    );
   }
 
   async start(): Promise<void> {
@@ -103,7 +86,6 @@ class AmICompatMCPServer {
     console.error('Available tools:');
     console.error('  • audit_project - Comprehensive project audit');
     console.error('  • audit_file - Single file analysis');
-    console.error('  • export_last_report - Export audit results');
     console.error('');
   }
 }

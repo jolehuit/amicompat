@@ -61,9 +61,8 @@ async function main(): Promise<void> {
       console.log('');
 
       console.log(chalk.green.bold('🛠️  Available MCP Tools:'));
-      console.log(chalk.green('  • audit_project') + ' - Comprehensive project audit');
+      console.log(chalk.green('  • audit_project') + ' - Comprehensive project audit (with --export option)');
       console.log(chalk.green('  • audit_file') + ' - Single file analysis');
-      console.log(chalk.green('  • export_last_report') + ' - Export audit results');
       console.log('');
 
       console.log(chalk.yellow.bold('📁 Supported File Types:'));
@@ -105,6 +104,30 @@ async function main(): Promise<void> {
       process.exit(1);
     }
   });
+
+
+  program
+    .command('audit-file')
+    .description('Audit single file for web features')
+    .argument('<file>', 'Path to CSS/HTML file')
+    .action(async (filePath: string) => {
+      try {
+        console.log(chalk.blue.bold(`📄 Auditing file: ${filePath}\n`));
+
+        const { MCPTools } = await import('./tools/index.js');
+        const tools = new MCPTools();
+
+        const result = await tools.auditFile({
+          file_path: filePath,
+        });
+
+        console.log(result.content[0]?.text?.replace(/\\n/g, '\n') || 'No content available');
+
+      } catch (error) {
+        console.error(chalk.red('❌ File audit failed:'), error);
+        process.exit(1);
+      }
+    });
 
 
   program

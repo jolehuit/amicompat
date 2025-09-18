@@ -4,7 +4,6 @@ import chalk from 'chalk';
 import {
   AuditProjectInput,
   AuditFileInput,
-  ExportLastReportInput,
   AuditReport,
   FeatureDetection,
   ParseContext,
@@ -20,7 +19,6 @@ import { ESLintFeatureDetector } from '../lib/eslint-wrapper.js';
  */
 export class MCPTools {
   private fileWalker = new FileWalker();
-  private lastReport: AuditReport | null = null;
 
   private readonly supportedExtensions = [
     '.css', '.scss', '.sass',
@@ -97,7 +95,6 @@ export class MCPTools {
         files.length
       );
 
-      this.lastReport = report;
 
       // Format response
       const summary = this.formatAuditSummary(report);
@@ -179,31 +176,6 @@ export class MCPTools {
     }
   }
 
-  /**
-   * Export the last audit report
-   */
-  async exportLastReport(input: ExportLastReportInput): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
-    try {
-      if (!this.lastReport) {
-        throw new McpError(ErrorCode.InvalidRequest, 'No audit report available to export');
-      }
-
-      await writeFile(input.path, this.safeStringify(this.lastReport), 'utf-8');
-
-      return {
-        content: [{
-          type: 'text',
-          text: `✅ Report exported to ${input.path}`
-        }]
-      };
-
-    } catch (error) {
-      if (error instanceof McpError) {
-        throw error;
-      }
-      throw new McpError(ErrorCode.InternalError, `Export failed: ${error}`);
-    }
-  }
 
   // Helper methods
 

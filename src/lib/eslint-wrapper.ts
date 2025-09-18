@@ -4,7 +4,8 @@
  */
 
 import { ESLint } from 'eslint';
-import { ParseContext, IdentifiedFeature } from '../types/index.js';
+import { computeBaseline } from 'compute-baseline';
+import { ParseContext, IdentifiedFeature, DetailedSupport, BrowserSupport } from '../types/index.js';
 
 /**
  * ESLint-powered feature detector
@@ -154,7 +155,7 @@ export class ESLintFeatureDetector {
         
         console.log(`[detectHTMLFeatures] ESLint returned ${results.length} results`);
         
-        results.forEach((result, i) => {
+        for (const [i, result] of results.entries()) {
           console.log(`[detectHTMLFeatures] Result ${i}:`, {
             filePath: result.filePath,
             messageCount: result.messages.length,
@@ -162,8 +163,8 @@ export class ESLintFeatureDetector {
             warningCount: result.warningCount,
             suppressedMessages: result.suppressedMessages?.length || 0
           });
-          
-          result.messages.forEach((message, j) => {
+
+          for (const [j, message] of result.messages.entries()) {
             console.log(`[detectHTMLFeatures] Message ${j}:`, {
               ruleId: message.ruleId,
               severity: message.severity,
@@ -171,9 +172,9 @@ export class ESLintFeatureDetector {
               line: message.line,
               column: message.column
             });
-            
+
             if (message.ruleId === '@html-eslint/use-baseline') {
-              const feature = this.parseBaselineMessage(message, context, 'html');
+              const feature = await this.parseBaselineMessage(message, context, 'html');
               if (feature) {
                 console.log(`[detectHTMLFeatures] Parsed feature:`, feature);
                 features.push(feature);
@@ -181,8 +182,8 @@ export class ESLintFeatureDetector {
                 console.log(`[detectHTMLFeatures] Failed to parse message: ${message.message}`);
               }
             }
-          });
-        });
+          }
+        }
 
       } catch (error) {
         console.error(`[detectHTMLFeatures] HTML-ESLint analysis failed:`, error);
@@ -216,7 +217,7 @@ export class ESLintFeatureDetector {
         
         console.log(`[detectCSSFeatures] ESLint returned ${results.length} results`);
         
-        results.forEach((result, i) => {
+        for (const [i, result] of results.entries()) {
           console.log(`[detectCSSFeatures] Result ${i}:`, {
             filePath: result.filePath,
             messageCount: result.messages.length,
@@ -224,8 +225,8 @@ export class ESLintFeatureDetector {
             warningCount: result.warningCount,
             suppressedMessages: result.suppressedMessages?.length || 0
           });
-          
-          result.messages.forEach((message, j) => {
+
+          for (const [j, message] of result.messages.entries()) {
             console.log(`[detectCSSFeatures] Message ${j}:`, {
               ruleId: message.ruleId,
               severity: message.severity,
@@ -233,9 +234,9 @@ export class ESLintFeatureDetector {
               line: message.line,
               column: message.column
             });
-            
+
             if (message.ruleId === 'css/use-baseline') {
-              const feature = this.parseBaselineMessage(message, context, 'css');
+              const feature = await this.parseBaselineMessage(message, context, 'css');
               if (feature) {
                 console.log(`[detectCSSFeatures] Parsed feature:`, feature);
                 features.push(feature);
@@ -243,8 +244,8 @@ export class ESLintFeatureDetector {
                 console.log(`[detectCSSFeatures] Failed to parse message: ${message.message}`);
               }
             }
-          });
-        });
+          }
+        }
 
       } catch (error) {
         console.error(`[detectCSSFeatures] CSS-ESLint analysis failed:`, error);
@@ -263,7 +264,7 @@ export class ESLintFeatureDetector {
   /**
    * Parse baseline message to extract feature information
    */
-  private parseBaselineMessage(message: any, context: ParseContext, type: 'css' | 'html'): IdentifiedFeature | null {
+  private async parseBaselineMessage(message: any, context: ParseContext, type: 'css' | 'html'): Promise<IdentifiedFeature | null> {
     const messageText = message.message;
     console.log(`[parseBaselineMessage] Parsing message: "${messageText}" for type: ${type}`);
     
@@ -305,10 +306,13 @@ export class ESLintFeatureDetector {
       return null;
     }
 
-    const feature = {
+    // Generate BCD key for compute-baseline
+    const bcdKey = this.generateBcdKey(syntaxPattern, type);
+
+    const feature: IdentifiedFeature = {
       feature_name: featureName,
       feature_id: `${type}-${syntaxPattern.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
-      bcd_keys: [],
+      bcd_keys: bcdKey ? [bcdKey] : [],
       syntax_pattern: syntaxPattern,
       ast_node_type: type,
       confidence: 'high' as const,
@@ -319,7 +323,15 @@ export class ESLintFeatureDetector {
         context: this.getLineContext(context.content, message.line || 1)
       }
     };
-    
+
+    // Enrich with compute-baseline data
+    if (bcdKey) {
+      const detailedSupport = await this.enrichWithComputeBaseline(bcdKey);
+      if (detailedSupport) {
+        feature.detailed_support = detailedSupport;
+      }
+    }
+
     console.log(`[parseBaselineMessage] Successfully parsed feature:`, feature);
     return feature;
   }
@@ -332,6 +344,142 @@ export class ESLintFeatureDetector {
     const lines = content.split('\n');
     const line = lines[lineNumber - 1];
     return line ? line.trim() : '';
+  }
+
+  /**
+   * Generate BCD (Browser Compatibility Data) key from syntax pattern
+   */
+  private generateBcdKey(syntaxPattern: string, type: 'css' | 'html'): string | null {
+    if (type === 'css') {
+      if (syntaxPattern.startsWith('@')) {
+        // At-rules: @container -> css.at-rules.container
+        const atRule = syntaxPattern.substring(1);
+        return `css.at-rules.${atRule}`;
+      } else if (syntaxPattern.includes(':')) {
+        // Pseudo-selectors: :has -> css.selectors.has
+        const selector = syntaxPattern.substring(1);
+        return `css.selectors.${selector}`;
+      } else {
+        // Properties: backdrop-filter -> css.properties.backdrop-filter
+        return `css.properties.${syntaxPattern}`;
+      }
+    } else if (type === 'html') {
+      if (syntaxPattern.startsWith('<')) {
+        // Elements: <dialog -> html.elements.dialog
+        const element = syntaxPattern.substring(1);
+        return `html.elements.${element}`;
+      } else if (syntaxPattern.includes('=')) {
+        // Attributes: loading= -> html.elements.img.loading (simplified)
+        const attribute = syntaxPattern.replace('=', '');
+        return `html.global_attributes.${attribute}`;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Enrich feature with compute-baseline data
+   */
+  private async enrichWithComputeBaseline(bcdKey: string): Promise<DetailedSupport | undefined> {
+    try {
+      console.log(`[enrichWithComputeBaseline] Computing baseline for: ${bcdKey}`);
+
+      const result = computeBaseline({
+        compatKeys: [bcdKey],
+        checkAncestors: true,
+      });
+
+      const browserSupport = this.extractBrowserSupport(result.support);
+
+      const detailedSupport: DetailedSupport = {
+        baseline_status: result.baseline,
+        baseline_low_date: result.baseline_low_date || null,
+        baseline_high_date: result.baseline_high_date || null,
+        browser_support: browserSupport,
+        discouraged: result.discouraged || false,
+      };
+
+      console.log(`[enrichWithComputeBaseline] Enriched data:`, detailedSupport);
+      return detailedSupport;
+
+    } catch (error) {
+      console.warn(`[enrichWithComputeBaseline] Failed to compute baseline for ${bcdKey}:`, error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Extract browser support data from compute-baseline result
+   */
+  private extractBrowserSupport(supportData: any): BrowserSupport {
+    const browserSupport: BrowserSupport = {};
+
+    if (!supportData) {
+      return browserSupport;
+    }
+
+    try {
+      // Handle Map returned by compute-baseline
+      if (supportData instanceof Map) {
+        for (const [browser, version] of supportData.entries()) {
+          const browserId = this.normalizeBrowserId(browser);
+          const versionString = this.extractVersion(version);
+
+          if (browserId && versionString) {
+            browserSupport[browserId] = versionString;
+          }
+        }
+      }
+      // Handle plain object
+      else if (typeof supportData === 'object') {
+        for (const [browser, version] of Object.entries(supportData)) {
+          const browserId = this.normalizeBrowserId(browser);
+          const versionString = this.extractVersion(version);
+
+          if (browserId && versionString) {
+            browserSupport[browserId] = versionString;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[extractBrowserSupport] Failed to extract support data:', error);
+    }
+
+    return browserSupport;
+  }
+
+  /**
+   * Normalize browser identifier
+   */
+  private normalizeBrowserId(browser: any): string | null {
+    if (typeof browser === 'string') {
+      return browser;
+    } else if (browser && typeof browser === 'object' && 'id' in browser) {
+      return String(browser.id);
+    }
+    return null;
+  }
+
+  /**
+   * Extract version from support data
+   */
+  private extractVersion(version: any): string | null {
+    if (typeof version === 'string' || typeof version === 'number') {
+      return String(version);
+    } else if (version && typeof version === 'object') {
+      // compute-baseline returns { text: '76', release: {...}, ranged: false }
+      if ('text' in version && version.text) {
+        return String(version.text);
+      }
+      if ('version_added' in version && version.version_added) {
+        return String(version.version_added);
+      }
+      if ('version' in version && version.version) {
+        return String(version.version);
+      }
+    }
+    return null;
   }
 
 }

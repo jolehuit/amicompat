@@ -32,11 +32,12 @@ Analyze my HTML code and tell me what browsers support these elements
 
 AmICompat provides:
 
-- 🔍 **ESLint-based analysis** - Robust feature detection for CSS and HTML
-- 📊 **Baseline compatibility reports** - Standards-based browser support analysis
+- 🔍 **ESLint-based detection** - Robust feature detection using web-features data
+- 🌐 **compute-baseline enrichment** - Detailed browser support with versions and dates
+- 📊 **Comprehensive compatibility reports** - Full Baseline status with browser versions
 - 🎯 **Targeted recommendations** - Specific baseline violation identification
 - 🚀 **Local processing** - Fast analysis using native ESLint rules
-- 📈 **Coverage metrics** - Clear baseline violation reporting
+- 📈 **Rich JSON exports** - Detailed compatibility data for integration
 
 ## 🛠️ Installation
 
@@ -277,7 +278,7 @@ Add the following configuration to the `mcp` section of your Copilot Coding Agen
     "amicompat-mcp": {
       "command": "npx",
       "args": ["-y", "amicompat-mcp"],
-      "tools": ["audit_project", "audit_file", "export_last_report"]
+      "tools": ["audit_project", "audit_file"]
     }
   }
 }
@@ -336,9 +337,6 @@ AmICompat MCP provides the following tools that LLMs can use:
 
 - **`audit_file`**: Single file compatibility analysis
   - `file_path` (required): Path to the CSS or HTML file to analyze
-
-- **`export_last_report`**: Export the most recent audit report
-  - `path` (required): File path for the exported JSON report
 
 ## 🎯 Supported Technologies
 
@@ -399,6 +397,7 @@ Use 'widely' as the default target unless specified otherwise.
 
 ## 📊 Example Output
 
+### Console Report
 ```
 🎯 Baseline Compatibility Report
 
@@ -406,12 +405,36 @@ Use 'widely' as the default target unless specified otherwise.
    Target: widely
    Features Detected: 3
    Baseline Violations: 3
-   Files Scanned: 15
+   Files Scanned: 2
 
 🔍 Detected Features:
-   • CSS view-transition-name property (1 location)
-   • CSS anchor-name property (1 location)
-   • HTML <search> element (1 location)
+   • CSS backdrop-filter property (2 locations)
+   • CSS outline property (1 location)
+```
+
+### JSON Export (Rich Data)
+```json
+{
+  "project_path": "/path/to/project",
+  "target": "widely",
+  "features_detected": [
+    {
+      "feature": "CSS backdrop-filter property",
+      "locations": [...],
+      "detailed_support": {
+        "baseline_status": "low",
+        "baseline_low_date": "2024-09-16",
+        "browser_support": {
+          "chrome": "76",
+          "firefox": "103",
+          "safari": "18",
+          "edge": "79"
+        },
+        "discouraged": false
+      }
+    }
+  ]
+}
 ```
 
 ## 💻 CLI Usage
@@ -453,26 +476,37 @@ npm run test:cli           # Test CLI functionality
 ## 🏗️ Architecture
 
 - **TypeScript Native**: Built with modern TypeScript and strict type checking
-- **ESLint-based Detection**: Uses ESLint for robust and reliable feature detection
-- **Native Baseline Rules**: Powered by `@eslint/css` and `@html-eslint` use-baseline rules
+- **Hybrid Detection**: ESLint detection + compute-baseline enrichment for maximum accuracy
+- **Native Baseline Rules**: Uses `@eslint/css` and `@html-eslint` built-in `use-baseline` rules
+- **web-features Powered**: ESLint plugins natively integrate web-features for Baseline validation
+- **Browser Compatibility Data**: Real-time enrichment with BCD via compute-baseline
 - **Zod Validation**: Type-safe MCP tool inputs and outputs
-- **Simplified Design**: Clean, maintainable codebase focused on CSS and HTML
+- **Rich Data Export**: Comprehensive JSON reports with browser versions and dates
 
-### Why ESLint-based Detection?
+### Why Hybrid ESLint + compute-baseline?
 
-- **🛡️ Robustness**: ESLint handles edge cases and syntax variations better than custom parsers
-- **🔧 Maintainability**: Leverages battle-tested, community-maintained parsing logic
-- **⚡ Performance**: Optimized parsing engine designed for large codebases
-- **🚀 Extensibility**: Easy to add new feature detection via ESLint rules
-- **🎯 Accuracy**: Industry-standard parsing with comprehensive syntax support
+- **🔍 Robust Detection**: ESLint handles syntax parsing with web-features validation
+- **🌐 Rich Data**: compute-baseline provides detailed browser support information
+- **⚡ Performance**: Local processing with native ESLint + BCD data
+- **🎯 Accuracy**: Double-validation via ESLint detection + compute-baseline analysis
+- **📊 Comprehensive**: Both detection and detailed compatibility in one tool
+
+### ESLint Baseline Integration
+
+AmICompat leverages the native Baseline support in ESLint plugins:
+
+- **`@eslint/css`** - CSS plugin with built-in `use-baseline` rule powered by **web-features** data
+- **`@html-eslint`** - HTML plugin with built-in `use-baseline` rule powered by **web-features** data
+- **web-features integration** - ESLint plugins automatically validate against curated Baseline features
+- **Seamless detection** - No custom parsing needed, ESLint handles all syntax variations with Baseline awareness
 
 ### Project Structure
 
 ```
 src/
-├── types/index.ts         # Zod schemas and TypeScript types
+├── types/index.ts         # Zod schemas, TypeScript types + DetailedSupport
 ├── lib/
-│   ├── eslint-wrapper.ts  # ESLint-based feature detection for CSS/HTML
+│   ├── eslint-wrapper.ts  # ESLint detection + compute-baseline enrichment
 │   └── walker.ts          # File system walker with filtering
 ├── tools/index.ts         # MCP tools implementation
 ├── server.ts              # Main MCP server
@@ -501,6 +535,9 @@ MIT License. See [LICENSE](./LICENSE) for details.
 - **ESLint** - Robust CSS and HTML feature detection
 - **@eslint/css** - CSS feature detection with use-baseline rule
 - **@html-eslint** - HTML feature detection with use-baseline rule
+- **compute-baseline** - Browser compatibility data enrichment
+- **@mdn/browser-compat-data** - Comprehensive browser compatibility database
+- **web-features** - Curated web platform features dataset
 - **Zod** - Runtime type validation
 
 ---

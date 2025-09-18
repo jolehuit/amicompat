@@ -13,14 +13,9 @@ export const AuditFileInputSchema = z.object({
 });
 
 
-export const ExportLastReportInputSchema = z.object({
-  path: z.string().describe('Output file path for the report'),
-});
-
 // Types derived from schemas
 export type AuditProjectInput = z.infer<typeof AuditProjectInputSchema>;
 export type AuditFileInput = z.infer<typeof AuditFileInputSchema>;
-export type ExportLastReportInput = z.infer<typeof ExportLastReportInputSchema>;
 
 // Baseline compatibility targets
 export type BaselineTarget = 'widely' | 'newly';
@@ -34,6 +29,28 @@ export interface IdentifiedFeature {
   ast_node_type: string;      // "css"
   confidence: 'high' | 'medium' | 'low';
   location: FeatureLocation;
+  detailed_support?: DetailedSupport; // Added: compute-baseline enrichment
+}
+
+// Detailed browser support data from compute-baseline
+export interface DetailedSupport {
+  baseline_status: 'high' | 'low' | false;
+  baseline_low_date?: string | null;
+  baseline_high_date?: string | null;
+  browser_support: BrowserSupport;
+  discouraged?: boolean;
+}
+
+// Browser-specific support information
+export interface BrowserSupport {
+  chrome?: string;
+  chrome_android?: string;
+  edge?: string;
+  firefox?: string;
+  firefox_android?: string;
+  safari?: string;
+  safari_ios?: string;
+  [key: string]: string | undefined;
 }
 
 // Feature detection result for compatibility reporting
