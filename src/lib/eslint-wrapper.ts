@@ -144,10 +144,12 @@ export class ESLintFeatureDetector {
 
     if (this.htmlEslint) {
       try {
-        console.log(`[detectHTMLFeatures] Calling lintText with file path: ${context.file_path}`);
+        // Use virtual path to avoid "outside of base path" issue
+        const virtualPath = 'virtual.html';
+        console.log(`[detectHTMLFeatures] Using virtual path: ${virtualPath} instead of: ${context.file_path}`);
         
         const results = await this.htmlEslint.lintText(context.content, {
-          filePath: context.file_path
+          filePath: virtualPath
         });
         
         console.log(`[detectHTMLFeatures] ESLint returned ${results.length} results`);
@@ -204,10 +206,12 @@ export class ESLintFeatureDetector {
 
     if (this.cssEslint) {
       try {
-        console.log(`[detectCSSFeatures] Calling lintText with file path: ${context.file_path}`);
+        // Use virtual path to avoid "outside of base path" issue
+        const virtualPath = 'virtual.css';
+        console.log(`[detectCSSFeatures] Using virtual path: ${virtualPath} instead of: ${context.file_path}`);
         
         const results = await this.cssEslint.lintText(context.content, {
-          filePath: context.file_path
+          filePath: virtualPath
         });
         
         console.log(`[detectCSSFeatures] ESLint returned ${results.length} results`);
