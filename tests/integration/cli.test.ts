@@ -56,7 +56,6 @@ describe('CLI Integration Tests', () => {
       expect(stdout).toContain('Available MCP Tools:');
       expect(stdout).toContain('audit_project');
       expect(stdout).toContain('audit_file');
-      expect(stdout).toContain('export_last_report');
     });
   });
 

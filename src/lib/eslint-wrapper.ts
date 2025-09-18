@@ -288,13 +288,15 @@ export class ESLintFeatureDetector {
         featureName = `CSS ${selectorMatch[1]} selector`;
       }
     } else if (type === 'html') {
-      // Try to match patterns like "Element 'dialog' is not widely available"
+      // Try to match patterns like "Element '<search>' is not widely available"
       const elementMatch = messageText.match(/Element '([^']+)'/);
       const attributeMatch = messageText.match(/Attribute '([^']+)'/);
 
       if (elementMatch) {
-        syntaxPattern = `<${elementMatch[1]}`;
-        featureName = `HTML ${elementMatch[1]} element`;
+        // Remove angle brackets if present: '<search>' -> 'search'
+        const rawElement = elementMatch[1];
+        syntaxPattern = rawElement.replace(/^<|>$/g, '');
+        featureName = `HTML <${syntaxPattern}> element`;
       } else if (attributeMatch) {
         syntaxPattern = `${attributeMatch[1]}=`;
         featureName = `HTML ${attributeMatch[1]} attribute`;
@@ -364,14 +366,13 @@ export class ESLintFeatureDetector {
         return `css.properties.${syntaxPattern}`;
       }
     } else if (type === 'html') {
-      if (syntaxPattern.startsWith('<')) {
-        // Elements: <dialog -> html.elements.dialog
-        const element = syntaxPattern.substring(1);
-        return `html.elements.${element}`;
-      } else if (syntaxPattern.includes('=')) {
+      if (syntaxPattern.includes('=')) {
         // Attributes: loading= -> html.elements.img.loading (simplified)
         const attribute = syntaxPattern.replace('=', '');
         return `html.global_attributes.${attribute}`;
+      } else {
+        // Elements: search -> html.elements.search
+        return `html.elements.${syntaxPattern}`;
       }
     }
 

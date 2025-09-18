@@ -215,35 +215,6 @@ describe('MCP Tools Integration Tests', () => {
   });
 
 
-  describe('exportLastReport', () => {
-    it('should export report after audit', async () => {
-      // First run an audit
-      const auditInput = {
-        project_path: testDir
-      };
-
-      await tools.auditProject(auditInput);
-
-      // Then export the report
-      const exportPath = join(testDir, 'exported-report.json');
-      const exportInput = {
-        path: exportPath
-      };
-
-      const result = await tools.exportLastReport(exportInput);
-
-      expect(result.content[0].text).toContain('Report exported to');
-      expect(result.content[0].text).toContain('exported-report.json');
-    });
-
-    it('should fail when no report available', async () => {
-      const input = {
-        path: join(testDir, 'report.json')
-      };
-
-      await expect(tools.exportLastReport(input)).rejects.toThrow();
-    });
-  });
 
   describe('error handling', () => {
     it('should handle permission errors gracefully', async () => {

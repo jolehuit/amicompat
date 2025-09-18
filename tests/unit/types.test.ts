@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   AuditProjectInputSchema,
   AuditFileInputSchema,
-  ExportLastReportInputSchema,
 } from '../../src/types/index.js';
 
 describe('Zod Schema Validation', () => {
@@ -87,32 +86,6 @@ describe('Zod Schema Validation', () => {
   });
 
 
-  describe('ExportLastReportInputSchema', () => {
-    it('should validate correct export input', () => {
-      const validInput = {
-        path: '/path/to/report.json'
-      };
-
-      const result = ExportLastReportInputSchema.safeParse(validInput);
-      expect(result.success).toBe(true);
-    });
-
-    it('should require path', () => {
-      const invalidInput = {};
-
-      const result = ExportLastReportInputSchema.safeParse(invalidInput);
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject non-string path', () => {
-      const invalidInput = {
-        path: 123
-      };
-
-      const result = ExportLastReportInputSchema.safeParse(invalidInput);
-      expect(result.success).toBe(false);
-    });
-  });
 
   describe('Schema combinations', () => {
     it('should handle all valid baseline targets', () => {

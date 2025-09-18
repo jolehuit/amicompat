@@ -84,7 +84,7 @@ describe('ESLintFeatureDetector', () => {
 
       expect(features).toHaveLength(1);
       expect(features[0].feature_name).toBe('HTML <search> element');
-      expect(features[0].syntax_pattern).toBe('<<search>');
+      expect(features[0].syntax_pattern).toBe('search');
       expect(features[0].location.line).toBe(1);
     });
 
