@@ -18,15 +18,24 @@ export class ESLintFeatureDetector {
 
   constructor(target: 'widely' | 'newly' = 'widely') {
     this.target = target;
+    console.log(`[ESLintFeatureDetector] Created with target: ${target}`);
   }
 
   private async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {
+      console.log(`[ESLintFeatureDetector] Already initialized, skipping...`);
+      return;
+    }
+
+    console.log(`[ESLintFeatureDetector] Starting initialization...`);
 
     // CSS ESLint instance with @eslint/css plugin
     try {
       const cssPlugin = await import('@eslint/css').then((m: any) => m.default || m);
       const projectRoot = new URL('../../..', import.meta.url).pathname;
+      
+      console.log(`[ESLintFeatureDetector] CSS Plugin loaded:`, !!cssPlugin);
+      console.log(`[ESLintFeatureDetector] Project root: ${projectRoot}`);
 
       this.cssEslint = new ESLint({
         overrideConfigFile: true,
@@ -45,10 +54,10 @@ export class ESLintFeatureDetector {
           }
         ]
       });
+      
+      console.log(`[ESLintFeatureDetector] CSS ESLint initialized successfully`);
     } catch (error) {
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn('Failed to initialize CSS ESLint, falling back to basic detection:', error);
-      }
+      console.error('[ESLintFeatureDetector] Failed to initialize CSS ESLint:', error);
     }
 
     // HTML ESLint instance with @html-eslint plugin
@@ -56,6 +65,9 @@ export class ESLintFeatureDetector {
       const htmlParser = await import('@html-eslint/parser').then((m: any) => m.default || m);
       const htmlPlugin = await import('@html-eslint/eslint-plugin').then((m: any) => m.default || m);
       const projectRoot = new URL('../../..', import.meta.url).pathname;
+      
+      console.log(`[ESLintFeatureDetector] HTML Parser loaded:`, !!htmlParser);
+      console.log(`[ESLintFeatureDetector] HTML Plugin loaded:`, !!htmlPlugin);
 
       this.htmlEslint = new ESLint({
         overrideConfigFile: true,
@@ -76,33 +88,48 @@ export class ESLintFeatureDetector {
           }
         ]
       });
+      
+      console.log(`[ESLintFeatureDetector] HTML ESLint initialized successfully`);
     } catch (error) {
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn('Failed to initialize HTML ESLint, falling back to basic detection:', error);
-      }
+      console.error('[ESLintFeatureDetector] Failed to initialize HTML ESLint:', error);
     }
 
     this.initialized = true;
+    console.log(`[ESLintFeatureDetector] Initialization complete`);
   }
 
   /**
    * Main detection method - routes to appropriate ESLint instance
    */
   async detectFeatures(context: ParseContext): Promise<IdentifiedFeature[]> {
+    console.log(`[ESLintFeatureDetector.detectFeatures] Starting detection for file: ${context.file_path}`);
+    console.log(`[ESLintFeatureDetector.detectFeatures] File type: ${context.file_type}`);
+    console.log(`[ESLintFeatureDetector.detectFeatures] Content length: ${context.content.length} characters`);
+    console.log(`[ESLintFeatureDetector.detectFeatures] First 200 chars:`, context.content.substring(0, 200));
+    
     await this.initialize();
 
+    let features: IdentifiedFeature[] = [];
+    
     switch (context.file_type) {
       case 'html':
-        return this.detectHTMLFeatures(context);
+        console.log(`[ESLintFeatureDetector.detectFeatures] Routing to HTML detector`);
+        features = await this.detectHTMLFeatures(context);
+        break;
 
       case 'css':
       case 'scss':
       case 'sass':
-        return this.detectCSSFeatures(context);
+        console.log(`[ESLintFeatureDetector.detectFeatures] Routing to CSS detector`);
+        features = await this.detectCSSFeatures(context);
+        break;
 
       default:
-        return [];
+        console.log(`[ESLintFeatureDetector.detectFeatures] Unsupported file type: ${context.file_type}`);
     }
+    
+    console.log(`[ESLintFeatureDetector.detectFeatures] Detection complete. Found ${features.length} features`);
+    return features;
   }
 
 
@@ -111,39 +138,60 @@ export class ESLintFeatureDetector {
    */
   private async detectHTMLFeatures(context: ParseContext): Promise<IdentifiedFeature[]> {
     const features: IdentifiedFeature[] = [];
+    
+    console.log(`[detectHTMLFeatures] Starting HTML detection for: ${context.file_path}`);
+    console.log(`[detectHTMLFeatures] HTML ESLint available: ${!!this.htmlEslint}`);
 
     if (this.htmlEslint) {
       try {
-        // Use a virtual path to avoid ESLint v9's outside-base-path issue
-        const virtualPath = `virtual.html`;
+        console.log(`[detectHTMLFeatures] Calling lintText with file path: ${context.file_path}`);
         
         const results = await this.htmlEslint.lintText(context.content, {
-          filePath: virtualPath  // Virtual path that matches **/*.html pattern
+          filePath: context.file_path
         });
-
-        for (const result of results) {
-          for (const message of result.messages) {
+        
+        console.log(`[detectHTMLFeatures] ESLint returned ${results.length} results`);
+        
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          console.log(`[detectHTMLFeatures] Result ${i}:`, {
+            filePath: result.filePath,
+            messageCount: result.messages.length,
+            errorCount: result.errorCount,
+            warningCount: result.warningCount,
+            suppressedMessages: result.suppressedMessages?.length || 0
+          });
+          
+          for (let j = 0; j < result.messages.length; j++) {
+            const message = result.messages[j];
+            console.log(`[detectHTMLFeatures] Message ${j}:`, {
+              ruleId: message.ruleId,
+              severity: message.severity,
+              message: message.message,
+              line: message.line,
+              column: message.column
+            });
+            
             if (message.ruleId === '@html-eslint/use-baseline') {
               const feature = this.parseBaselineMessage(message, context, 'html');
               if (feature) {
+                console.log(`[detectHTMLFeatures] Parsed feature:`, feature);
                 features.push(feature);
+              } else {
+                console.log(`[detectHTMLFeatures] Failed to parse message: ${message.message}`);
               }
             }
           }
         }
 
       } catch (error) {
-        if (process.env.NODE_ENV !== 'test') {
-          console.warn(`HTML-ESLint analysis failed for ${context.file_path}:`, error);
-        }
+        console.error(`[detectHTMLFeatures] HTML-ESLint analysis failed:`, error);
       }
-
     } else {
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn('HTML ESLint not available, no features detected');
-      }
+      console.warn('[detectHTMLFeatures] HTML ESLint not available');
     }
 
+    console.log(`[detectHTMLFeatures] Returning ${features.length} features`);
     return features;
   }
 
@@ -152,39 +200,60 @@ export class ESLintFeatureDetector {
    */
   private async detectCSSFeatures(context: ParseContext): Promise<IdentifiedFeature[]> {
     const features: IdentifiedFeature[] = [];
+    
+    console.log(`[detectCSSFeatures] Starting CSS detection for: ${context.file_path}`);
+    console.log(`[detectCSSFeatures] CSS ESLint available: ${!!this.cssEslint}`);
 
     if (this.cssEslint) {
       try {
-        // Use a virtual path to avoid ESLint v9's outside-base-path issue
-        const virtualPath = `virtual.css`;
+        console.log(`[detectCSSFeatures] Calling lintText with file path: ${context.file_path}`);
         
         const results = await this.cssEslint.lintText(context.content, {
-          filePath: virtualPath  // Virtual path that matches **/*.css pattern
+          filePath: context.file_path
         });
-
-        for (const result of results) {
-          for (const message of result.messages) {
+        
+        console.log(`[detectCSSFeatures] ESLint returned ${results.length} results`);
+        
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          console.log(`[detectCSSFeatures] Result ${i}:`, {
+            filePath: result.filePath,
+            messageCount: result.messages.length,
+            errorCount: result.errorCount,
+            warningCount: result.warningCount,
+            suppressedMessages: result.suppressedMessages?.length || 0
+          });
+          
+          for (let j = 0; j < result.messages.length; j++) {
+            const message = result.messages[j];
+            console.log(`[detectCSSFeatures] Message ${j}:`, {
+              ruleId: message.ruleId,
+              severity: message.severity,
+              message: message.message,
+              line: message.line,
+              column: message.column
+            });
+            
             if (message.ruleId === 'css/use-baseline') {
               const feature = this.parseBaselineMessage(message, context, 'css');
               if (feature) {
+                console.log(`[detectCSSFeatures] Parsed feature:`, feature);
                 features.push(feature);
+              } else {
+                console.log(`[detectCSSFeatures] Failed to parse message: ${message.message}`);
               }
             }
           }
         }
 
       } catch (error) {
-        if (process.env.NODE_ENV !== 'test') {
-          console.warn(`CSS-ESLint analysis failed for ${context.file_path}:`, error);
-        }
+        console.error(`[detectCSSFeatures] CSS-ESLint analysis failed:`, error);
       }
-
     } else {
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn('CSS ESLint not available, no features detected');
-      }
+      console.warn('[detectCSSFeatures] CSS ESLint not available');
     }
 
+    console.log(`[detectCSSFeatures] Returning ${features.length} features`);
     return features;
   }
 
@@ -196,6 +265,8 @@ export class ESLintFeatureDetector {
    */
   private parseBaselineMessage(message: any, context: ParseContext, type: 'css' | 'html'): IdentifiedFeature | null {
     const messageText = message.message;
+    console.log(`[parseBaselineMessage] Parsing message: "${messageText}" for type: ${type}`);
+    
     let syntaxPattern: string | undefined;
     let featureName: string | undefined;
 
@@ -230,16 +301,17 @@ export class ESLintFeatureDetector {
     }
 
     if (!syntaxPattern || !featureName) {
+      console.warn(`[parseBaselineMessage] Could not parse message: no pattern matched`);
       return null;
     }
 
-    return {
+    const feature = {
       feature_name: featureName,
       feature_id: `${type}-${syntaxPattern.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
       bcd_keys: [],
       syntax_pattern: syntaxPattern,
       ast_node_type: type,
-      confidence: 'high',
+      confidence: 'high' as const,
       location: {
         file: context.file_path,
         line: message.line || 1,
@@ -247,6 +319,9 @@ export class ESLintFeatureDetector {
         context: this.getLineContext(context.content, message.line || 1)
       }
     };
+    
+    console.log(`[parseBaselineMessage] Successfully parsed feature:`, feature);
+    return feature;
   }
 
 
