@@ -69,10 +69,16 @@ export class MCPTools {
           const identifiedFeatures = await featureDetector.detectFeatures(context);
 
           for (const feature of identifiedFeatures) {
-            allFeatureDetections.push({
+            const detection: FeatureDetection = {
               feature: feature.feature_name,
               locations: [feature.location]
-            });
+            };
+
+            if (feature.detailed_support) {
+              detection.detailed_support = feature.detailed_support;
+            }
+
+            allFeatureDetections.push(detection);
           }
 
           processedCount++;
@@ -105,7 +111,7 @@ export class MCPTools {
         return {
           content: [{
             type: 'text',
-            text: summary + `\\n✅ Report exported to ${input.export_path}`
+            text: summary + `\n✅ Report exported to ${input.export_path}`
           }]
         };
       }
@@ -220,22 +226,64 @@ export class MCPTools {
   private formatAuditSummary(report: AuditReport): string {
     const { summary } = report;
 
-    let output = chalk.bold.green('🎯 Baseline Compatibility Report\\n\\n');
+    // Debug: Check if detailed_support data is present
+    const featuresWithSupport = report.features_detected.filter(f => f.detailed_support);
+    console.log(`[formatAuditSummary] Total features: ${report.features_detected.length}, With detailed_support: ${featuresWithSupport.length}`);
 
-    output += chalk.cyan('📊 Summary:\\n');
-    output += `   Target: ${report.target}\\n`;
-    output += `   Features Detected: ${summary.total_features}\\n`;
-    output += `   Baseline Violations: ${summary.baseline_violations}\\n`;
-    output += `   Files Scanned: ${summary.files_scanned}\\n\\n`;
+    // Use plain text for MCP compatibility (no chalk colors)
+    let output = '🎯 Baseline Compatibility Report [v2.0-fixed]\n\n';
+
+    output += '📊 Summary:\n';
+    output += `   Target: ${report.target}\n`;
+    output += `   Features Detected: ${summary.total_features}\n`;
+    output += `   Baseline Violations: ${summary.baseline_violations}\n`;
+    output += `   Files Scanned: ${summary.files_scanned}\n\n`;
 
     if (summary.total_features > 0) {
-      output += chalk.cyan('🔍 Detected Features:\\n');
-      report.features_detected.slice(0, 10).forEach(feature => {
-        output += `   • ${feature.feature} (${feature.locations.length} location${feature.locations.length > 1 ? 's' : ''})\\n`;
+      output += '🔍 Detailed Compatibility Analysis:\n';
+      report.features_detected.slice(0, 10).forEach((feature, index) => {
+        output += `   ${index + 1}. ${feature.feature} (${feature.locations.length} location${feature.locations.length > 1 ? 's' : ''})\n`;
+
+        // Add browser compatibility info if available
+        if (feature.detailed_support) {
+          const support = feature.detailed_support;
+
+          const browsers = Object.entries(support.browser_support)
+            .map(([browser, version]) => `${browser} ${version}+`)
+            .join(', ');
+
+          output += `      📈 Browser Support: ${browsers}\n`;
+
+          if (support.baseline_status === 'high') {
+            output += `      ✅ Baseline: High (widely supported)`;
+          } else if (support.baseline_status === 'low') {
+            output += `      🟡 Baseline: Low (limited support)`;
+          } else {
+            output += `      ❌ Baseline: Not supported`;
+          }
+
+          if (support.baseline_low_date) {
+            output += ` - Available since ${support.baseline_low_date}`;
+          }
+          output += `\n`;
+
+          // Show locations
+          feature.locations.forEach(loc => {
+            output += `      📍 ${loc.file}:${loc.line}:${loc.column}\n`;
+            output += `         ${loc.context}\n`;
+          });
+        } else {
+          output += `      ⚠️  No compatibility data available\n`;
+          feature.locations.forEach(loc => {
+            output += `      📍 ${loc.file}:${loc.line}:${loc.column}\n`;
+            output += `         ${loc.context}\n`;
+          });
+        }
+        output += `\n`;
       });
 
       if (report.features_detected.length > 10) {
-        output += `   ... and ${report.features_detected.length - 10} more\\n`;
+        output += `   ... and ${report.features_detected.length - 10} more features\n`;
       }
     }
 
@@ -243,15 +291,41 @@ export class MCPTools {
   }
 
   private formatFileAuditResult(filePath: string, features: any[]): string {
-    let output = chalk.bold.blue(`📄 File Analysis: ${filePath}\\n\\n`);
+    let output = `📄 File Analysis: ${filePath}\n\n`;
 
-    output += chalk.cyan(`Features detected: ${features.length}\\n\\n`);
+    output += `Features detected: ${features.length}\n\n`;
 
     if (features.length > 0) {
-      output += chalk.cyan('🔍 Detected Features:\\n');
+      output += '🔍 Detected Features:\n';
       features.forEach((feature, index) => {
-        output += `   ${index + 1}. ${feature.feature_name} at line ${feature.location.line}:${feature.location.column}\\n`;
-        output += `      ${feature.location.context}\\n`;
+        output += `   ${index + 1}. ${feature.feature_name} at line ${feature.location.line}:${feature.location.column}\n`;
+        output += `      ${feature.location.context}\n`;
+
+        // Add browser compatibility info if available
+        if (feature.detailed_support) {
+          const support = feature.detailed_support;
+          const browsers = Object.entries(support.browser_support)
+            .map(([browser, version]) => `${browser} ${version}+`)
+            .join(', ');
+
+          output += `      📈 Browser Support: ${browsers}\n`;
+
+          if (support.baseline_status === 'high') {
+            output += `      ✅ Baseline: High (widely supported)`;
+          } else if (support.baseline_status === 'low') {
+            output += `      🟡 Baseline: Low (limited support)`;
+          } else {
+            output += `      ❌ Baseline: Not supported`;
+          }
+
+          if (support.baseline_low_date) {
+            output += ` - Available since ${support.baseline_low_date}`;
+          }
+          output += `\n`;
+        } else {
+          output += `      ⚠️  No compatibility data available\n`;
+        }
+        output += `\n`;
       });
     }
 
@@ -269,10 +343,16 @@ export class MCPTools {
         const key = `${location.file}:${location.line}:${detection.feature}`;
 
         if (!uniqueDetections.has(key)) {
-          uniqueDetections.set(key, {
+          const newDetection: FeatureDetection = {
             feature: detection.feature,
             locations: [location]
-          });
+          };
+
+          if (detection.detailed_support) {
+            newDetection.detailed_support = detection.detailed_support;
+          }
+
+          uniqueDetections.set(key, newDetection);
         } else {
           // Merge locations if the same feature is detected multiple times
           const existing = uniqueDetections.get(key)!;
@@ -282,6 +362,10 @@ export class MCPTools {
             loc.column === location.column
           )) {
             existing.locations.push(location);
+          }
+          // Preserve detailed_support if not already set
+          if (!existing.detailed_support && detection.detailed_support) {
+            existing.detailed_support = detection.detailed_support;
           }
         }
       }

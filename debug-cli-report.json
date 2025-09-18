@@ -1,0 +1,58 @@
+{
+  "project_path": "test-project",
+  "target": "widely",
+  "timestamp": "2025-09-18T14:20:30.424Z",
+  "features_detected": [
+    {
+      "feature": "CSS view-transition-name property",
+      "locations": [
+        {
+          "file": "test-project/modern.css",
+          "line": 2,
+          "column": 3,
+          "context": "view-transition-name: slide-in;"
+        }
+      ],
+      "detailed_support": {
+        "baseline_status": false,
+        "baseline_low_date": null,
+        "baseline_high_date": null,
+        "browser_support": {
+          "chrome": "111",
+          "chrome_android": "111",
+          "edge": "111",
+          "safari": "18",
+          "safari_ios": "18"
+        },
+        "discouraged": false
+      }
+    },
+    {
+      "feature": "CSS anchor-name property",
+      "locations": [
+        {
+          "file": "test-project/modern.css",
+          "line": 6,
+          "column": 3,
+          "context": "anchor-name: --my-anchor;"
+        }
+      ],
+      "detailed_support": {
+        "baseline_status": false,
+        "baseline_low_date": null,
+        "baseline_high_date": null,
+        "browser_support": {
+          "chrome": "125",
+          "chrome_android": "125",
+          "edge": "125"
+        },
+        "discouraged": false
+      }
+    }
+  ],
+  "summary": {
+    "total_features": 2,
+    "baseline_violations": 2,
+    "files_scanned": 1
+  }
+}

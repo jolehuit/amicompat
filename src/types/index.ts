@@ -57,6 +57,7 @@ export interface BrowserSupport {
 export interface FeatureDetection {
   feature: string;
   locations: FeatureLocation[];
+  detailed_support?: DetailedSupport; // Include browser compatibility data
 }
 
 export interface FeatureLocation {

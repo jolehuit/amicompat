@@ -1,0 +1,34 @@
+{
+  "project_path": "/Users/max/amicompat-mcp/test-project",
+  "target": "widely",
+  "timestamp": "2025-09-18T14:19:32.227Z",
+  "features_detected": [
+    {
+      "feature": "CSS view-transition-name property",
+      "locations": [
+        {
+          "file": "/Users/max/amicompat-mcp/test-project/modern.css",
+          "line": 2,
+          "column": 3,
+          "context": "view-transition-name: slide-in;"
+        }
+      ]
+    },
+    {
+      "feature": "CSS anchor-name property",
+      "locations": [
+        {
+          "file": "/Users/max/amicompat-mcp/test-project/modern.css",
+          "line": 6,
+          "column": 3,
+          "context": "anchor-name: --my-anchor;"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_features": 2,
+    "baseline_violations": 2,
+    "files_scanned": 1
+  }
+}
