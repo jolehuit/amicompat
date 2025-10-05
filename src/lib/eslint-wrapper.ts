@@ -239,9 +239,9 @@ export class ESLintFeatureDetector {
     const messageText = message.message;
     console.log(`[parseBaselineMessage] Parsing message: "${messageText}" for type: ${type}`);
     
-    let syntaxPattern: string | undefined;
-    let featureName: string | undefined;
-    let bcdKey: string | undefined;
+    let syntaxPattern = '';
+    let featureName = '';
+    let bcdKey = '';
 
     if (type === 'css') {
       const propertyMatch = messageText.match(/Property '([^']+)'/);
@@ -250,25 +250,25 @@ export class ESLintFeatureDetector {
       const valueMatch = messageText.match(/Value '([^']+)' of property '([^']+)'/);
       const typeMatch = messageText.match(/Type '([^']+)'/);
 
-      if (propertyMatch) {
+      if (propertyMatch && propertyMatch[1]) {
         syntaxPattern = propertyMatch[1];
-        featureName = `CSS ${propertyMatch[1]} property`;
+        featureName = `CSS ${syntaxPattern} property`;
         bcdKey = `css.properties.${syntaxPattern}`;
-      } else if (atRuleMatch) {
+      } else if (atRuleMatch && atRuleMatch[1]) {
         syntaxPattern = `@${atRuleMatch[1]}`;
         featureName = `CSS @${atRuleMatch[1]} at-rule`;
         bcdKey = `css.at-rules.${atRuleMatch[1]}`;
-      } else if (selectorMatch) {
+      } else if (selectorMatch && selectorMatch[1]) {
         syntaxPattern = selectorMatch[1];
         featureName = `CSS ${syntaxPattern} selector`;
         bcdKey = `css.selectors.${syntaxPattern}`;
-      } else if (valueMatch) {
+      } else if (valueMatch && valueMatch[1] && valueMatch[2]) {
         syntaxPattern = valueMatch[1];
         featureName = `CSS ${valueMatch[1]} value`;
         bcdKey = `css.properties.${valueMatch[2]}`;
-      } else if (typeMatch) {
+      } else if (typeMatch && typeMatch[1]) {
         syntaxPattern = typeMatch[1];
-        featureName = `CSS ${typeMatch[1]} function`;
+        featureName = `CSS ${syntaxPattern} function`;
         bcdKey = `css.types.${syntaxPattern.replace(/\(\)$/, '')}`;
       }
     } else if (type === 'html') {
@@ -276,16 +276,16 @@ export class ESLintFeatureDetector {
       const elementMatch = messageText.match(/Element '<([^>]+)>'/);
       const attributeMatch = messageText.match(/Attribute '([^']+)'/);
 
-      if (inputTypeMatch) {
+      if (inputTypeMatch && inputTypeMatch[1]) {
         const typeValue = inputTypeMatch[1];
         syntaxPattern = `type=${typeValue}`;
         featureName = `HTML type="${typeValue}" attribute`;
         bcdKey = `html.elements.input.type_${typeValue}`;
-      } else if (elementMatch) {
+      } else if (elementMatch && elementMatch[1]) {
         syntaxPattern = elementMatch[1];
         featureName = `HTML <${syntaxPattern}> element`;
         bcdKey = `html.elements.${syntaxPattern}`;
-      } else if (attributeMatch) {
+      } else if (attributeMatch && attributeMatch[1]) {
         syntaxPattern = `${attributeMatch[1]}=`;
         featureName = `HTML ${attributeMatch[1]} attribute`;
         bcdKey = `html.global_attributes.${attributeMatch[1]}`;
@@ -297,14 +297,11 @@ export class ESLintFeatureDetector {
       return null;
     }
 
-    const validSyntaxPattern: string = syntaxPattern;
-    const validFeatureName: string = featureName;
-
     const feature: IdentifiedFeature = {
-      feature_name: validFeatureName,
-      feature_id: `${type}-${validSyntaxPattern.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
+      feature_name: featureName,
+      feature_id: `${type}-${syntaxPattern.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
       bcd_keys: bcdKey ? [bcdKey] : [],
-      syntax_pattern: validSyntaxPattern,
+      syntax_pattern: syntaxPattern,
       ast_node_type: type,
       confidence: 'high' as const,
       location: {
