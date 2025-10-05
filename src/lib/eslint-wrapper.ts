@@ -265,79 +265,92 @@ export class ESLintFeatureDetector {
    * Parse baseline message to extract feature information
    */
   private async parseBaselineMessage(message: any, context: ParseContext, type: 'css' | 'html'): Promise<IdentifiedFeature | null> {
-    const messageText = message.message;
-    console.log(`[parseBaselineMessage] Parsing message: "${messageText}" for type: ${type}`);
-    
-    let syntaxPattern: string | undefined;
-    let featureName: string | undefined;
+  const messageText = message.message;
+  console.log(`[parseBaselineMessage] Parsing message: "${messageText}" for type: ${type}`);
+  
+  let syntaxPattern: string | undefined;
+  let featureName: string | undefined;
+  let bcdKey: string | undefined;
 
-    if (type === 'css') {
-      // Try to match patterns like "Property 'container-type' is not widely available"
-      const propertyMatch = messageText.match(/Property '([^']+)'/);
-      const atRuleMatch = messageText.match(/At-rule '@([^']+)'/);
-      const selectorMatch = messageText.match(/Selector '([^']+)'/);
+  if (type === 'css') {
+    const propertyMatch = messageText.match(/Property '([^']+)'/);
+    const atRuleMatch = messageText.match(/At-rule '@([^']+)'/);
+    const selectorMatch = messageText.match(/Selector '([^']+)'/);
+    const valueMatch = messageText.match(/Value '([^']+)' of property '([^']+)'/);
+    const typeMatch = messageText.match(/Type '([^']+)'/);
 
-      if (propertyMatch) {
-        syntaxPattern = propertyMatch[1];
-        featureName = `CSS ${propertyMatch[1]} property`;
-      } else if (atRuleMatch) {
-        syntaxPattern = `@${atRuleMatch[1]}`;
-        featureName = `CSS @${atRuleMatch[1]} at-rule`;
-      } else if (selectorMatch) {
-        syntaxPattern = selectorMatch[1];
-        featureName = `CSS ${selectorMatch[1]} selector`;
-      }
-    } else if (type === 'html') {
-      // Try to match patterns like "Element '<search>' is not widely available"
-      const elementMatch = messageText.match(/Element '([^']+)'/);
-      const attributeMatch = messageText.match(/Attribute '([^']+)'/);
-
-      if (elementMatch) {
-        // Remove angle brackets if present: '<search>' -> 'search'
-        const rawElement = elementMatch[1];
-        syntaxPattern = rawElement.replace(/^<|>$/g, '');
-        featureName = `HTML <${syntaxPattern}> element`;
-      } else if (attributeMatch) {
-        syntaxPattern = `${attributeMatch[1]}=`;
-        featureName = `HTML ${attributeMatch[1]} attribute`;
-      }
+    if (propertyMatch) {
+      syntaxPattern = propertyMatch[1];
+      featureName = `CSS ${propertyMatch[1]} property`;
+      bcdKey = `css.properties.${syntaxPattern}`;
+    } else if (atRuleMatch) {
+      syntaxPattern = `@${atRuleMatch[1]}`;
+      featureName = `CSS @${atRuleMatch[1]} at-rule`;
+      bcdKey = `css.at-rules.${atRuleMatch[1]}`;
+    } else if (selectorMatch) {
+      syntaxPattern = selectorMatch[1];
+      featureName = `CSS ${syntaxPattern} selector`;
+      bcdKey = `css.selectors.${syntaxPattern}`;
+    } else if (valueMatch) {
+      syntaxPattern = valueMatch[1];
+      featureName = `CSS ${valueMatch[1]} value`;
+      bcdKey = `css.properties.${valueMatch[2]}`;
+    } else if (typeMatch) {
+      syntaxPattern = typeMatch[1];
+      featureName = `CSS ${typeMatch[1]} function`;
+      bcdKey = `css.types.${syntaxPattern.replace(/\(\)$/, '')}`;
     }
+  } else if (type === 'html') {
+    const inputTypeMatch = messageText.match(/Attribute 'type="([^"]+)"' on '<input>'/);
+    const elementMatch = messageText.match(/Element '<([^>]+)>'/);
+    const attributeMatch = messageText.match(/Attribute '([^']+)'/);
 
-    if (!syntaxPattern || !featureName) {
-      console.warn(`[parseBaselineMessage] Could not parse message: no pattern matched`);
-      return null;
+    if (inputTypeMatch) {
+      const typeValue = inputTypeMatch[1];
+      syntaxPattern = `type=${typeValue}`;
+      featureName = `HTML type="${typeValue}" attribute`;
+      bcdKey = `html.elements.input.type_${typeValue}`;
+    } else if (elementMatch) {
+      syntaxPattern = elementMatch[1];
+      featureName = `HTML <${syntaxPattern}> element`;
+      bcdKey = `html.elements.${syntaxPattern}`;
+    } else if (attributeMatch) {
+      syntaxPattern = `${attributeMatch[1]}=`;
+      featureName = `HTML ${attributeMatch[1]} attribute`;
+      bcdKey = `html.global_attributes.${attributeMatch[1]}`;
     }
-
-    // Generate BCD key for compute-baseline
-    const bcdKey = this.generateBcdKey(syntaxPattern, type);
-
-    const feature: IdentifiedFeature = {
-      feature_name: featureName,
-      feature_id: `${type}-${syntaxPattern.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
-      bcd_keys: bcdKey ? [bcdKey] : [],
-      syntax_pattern: syntaxPattern,
-      ast_node_type: type,
-      confidence: 'high' as const,
-      location: {
-        file: context.file_path,
-        line: message.line || 1,
-        column: message.column || 1,
-        context: this.getLineContext(context.content, message.line || 1)
-      }
-    };
-
-    // Enrich with compute-baseline data
-    if (bcdKey) {
-      const detailedSupport = await this.enrichWithComputeBaseline(bcdKey);
-      if (detailedSupport) {
-        feature.detailed_support = detailedSupport;
-      }
-    }
-
-    console.log(`[parseBaselineMessage] Successfully parsed feature:`, feature);
-    return feature;
   }
 
+  if (!syntaxPattern || !featureName) {
+    console.warn(`[parseBaselineMessage] Could not parse message: no pattern matched`);
+    return null;
+  }
+
+  const feature: IdentifiedFeature = {
+    feature_name: featureName,
+    feature_id: `${type}-${syntaxPattern.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
+    bcd_keys: bcdKey ? [bcdKey] : [],
+    syntax_pattern: syntaxPattern,
+    ast_node_type: type,
+    confidence: 'high' as const,
+    location: {
+      file: context.file_path,
+      line: message.line || 1,
+      column: message.column || 1,
+      context: this.getLineContext(context.content, message.line || 1)
+    }
+  };
+
+  if (bcdKey) {
+    const detailedSupport = await this.enrichWithComputeBaseline(bcdKey);
+    if (detailedSupport) {
+      feature.detailed_support = detailedSupport;
+    }
+  }
+
+  console.log(`[parseBaselineMessage] Successfully parsed feature:`, feature);
+  return feature;
+}
 
   /**
    * Get line context from content
@@ -347,44 +360,6 @@ export class ESLintFeatureDetector {
     const line = lines[lineNumber - 1];
     return line ? line.trim() : '';
   }
-
-  /**
-   * Generate BCD (Browser Compatibility Data) key from syntax pattern
-   */
-  private generateBcdKey(syntaxPattern: string, type: 'css' | 'html'): string | null {
-  if (type === 'css') {
-    if (syntaxPattern.startsWith('@')) {
-      const atRule = syntaxPattern.substring(1);
-      return `css.at-rules.${atRule}`;
-    } else if (syntaxPattern.includes(':')) {
-      const selectorName = syntaxPattern
-        .substring(1)                    // Enlever le premier ":"
-        .replace(/::/, '')               // Enlever "::" pour pseudo-elements
-        .replace(/\(.*?\)$/, '')         // Enlever les paramètres "(xxx)"
-        .trim();
-      return `css.selectors.${selectorName}`;
-    } else {
-      return `css.properties.${syntaxPattern}`;
-    }
-  } else if (type === 'html') {
-    if (syntaxPattern.includes('=')) {
-      const match = syntaxPattern.match(/(\w+)=(\w+)/);
-      if (match) {
-        const [, attrName, attrValue] = match;
-        
-        if (attrName === 'type') {
-          return `html.elements.input.type_${attrValue}`;
-        }
-        
-        return `html.global_attributes.${attrName}`;
-      }
-    } else {
-      return `html.elements.${syntaxPattern}`;
-    }
-  }
-
-  return null;
-}
 
   /**
    * Enrich feature with compute-baseline data
