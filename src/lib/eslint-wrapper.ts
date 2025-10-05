@@ -352,32 +352,39 @@ export class ESLintFeatureDetector {
    * Generate BCD (Browser Compatibility Data) key from syntax pattern
    */
   private generateBcdKey(syntaxPattern: string, type: 'css' | 'html'): string | null {
-    if (type === 'css') {
-      if (syntaxPattern.startsWith('@')) {
-        // At-rules: @container -> css.at-rules.container
-        const atRule = syntaxPattern.substring(1);
-        return `css.at-rules.${atRule}`;
-      } else if (syntaxPattern.includes(':')) {
-        // Pseudo-selectors: :has -> css.selectors.has
-        const selector = syntaxPattern.substring(1);
-        return `css.selectors.${selector}`;
-      } else {
-        // Properties: backdrop-filter -> css.properties.backdrop-filter
-        return `css.properties.${syntaxPattern}`;
-      }
-    } else if (type === 'html') {
-      if (syntaxPattern.includes('=')) {
-        // Attributes: loading= -> html.elements.img.loading (simplified)
-        const attribute = syntaxPattern.replace('=', '');
-        return `html.global_attributes.${attribute}`;
-      } else {
-        // Elements: search -> html.elements.search
-        return `html.elements.${syntaxPattern}`;
-      }
+  if (type === 'css') {
+    if (syntaxPattern.startsWith('@')) {
+      const atRule = syntaxPattern.substring(1);
+      return `css.at-rules.${atRule}`;
+    } else if (syntaxPattern.includes(':')) {
+      const selectorName = syntaxPattern
+        .substring(1)                    // Enlever le premier ":"
+        .replace(/::/, '')               // Enlever "::" pour pseudo-elements
+        .replace(/\(.*?\)$/, '')         // Enlever les paramètres "(xxx)"
+        .trim();
+      return `css.selectors.${selectorName}`;
+    } else {
+      return `css.properties.${syntaxPattern}`;
     }
-
-    return null;
+  } else if (type === 'html') {
+    if (syntaxPattern.includes('=')) {
+      const match = syntaxPattern.match(/(\w+)=(\w+)/);
+      if (match) {
+        const [, attrName, attrValue] = match;
+        
+        if (attrName === 'type') {
+          return `html.elements.input.type_${attrValue}`;
+        }
+        
+        return `html.global_attributes.${attrName}`;
+      }
+    } else {
+      return `html.elements.${syntaxPattern}`;
+    }
   }
+
+  return null;
+}
 
   /**
    * Enrich feature with compute-baseline data
