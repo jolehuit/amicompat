@@ -297,11 +297,14 @@ export class ESLintFeatureDetector {
       return null;
     }
 
+    const validSyntaxPattern: string = syntaxPattern;
+    const validFeatureName: string = featureName;
+
     const feature: IdentifiedFeature = {
-      feature_name: featureName,
-      feature_id: `${type}-${syntaxPattern!.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
+      feature_name: validFeatureName,
+      feature_id: `${type}-${validSyntaxPattern.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`,
       bcd_keys: bcdKey ? [bcdKey] : [],
-      syntax_pattern: syntaxPattern!,
+      syntax_pattern: validSyntaxPattern,
       ast_node_type: type,
       confidence: 'high' as const,
       location: {
